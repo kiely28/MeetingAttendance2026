@@ -1,3 +1,1956 @@
+### ASP.NET Core MVC .NET 8: Complete Light Mode and Dark Mode Tutorial
+
+Phase 1 — Local Storage Approach · Visual Studio 2022 · Bootstrap 5 · JavaScript · CSS
+
+This tutorial will guide you from creating a new ASP.NET Core MVC project to implementing a working Light/Dark Mode toggle that remembers the user's choice after refreshing or reopening the browser.
+
+The tutorial is designed for beginners. You do not need SQL Server, Entity Framework, ASP.NET Identity, or any database.
+
+### What you will build
+
+### My Application
+
+ASP.NET Core MVC
+
+### Dashboard
+
+Welcome back! Here's your overview.
+
+Total Users
+
+### 128
+
+Requests
+
+### 42
+
+Light theme preview
+
+### My Application
+
+ASP.NET Core MVC
+
+### Dashboard
+
+Welcome back! Here's your overview.
+
+Total Users
+
+### 128
+
+Requests
+
+### 42
+
+Dark theme preview
+
+Illustrative previews of the target appearance, not screenshots of a running application.
+
+Your completed application will have these features:
+
+* A theme toggle button in the shared navigation bar.
+
+* Light and dark color schemes using CSS variables.
+
+* A moon icon in Light Mode and a sun icon in Dark Mode.
+
+* Instant theme switching without a page reload.
+
+* Automatic restoration of the last selected theme.
+
+* A clean structure suitable for future IIS hosting.
+
+The core workflow is:
+
+1\. User clicks the theme button
+
+2\. JavaScript changes the theme
+
+The page updates immediately.
+
+3\. The choice is saved
+
+The browser stores light or dark.
+
+4\. The next page load restores it
+
+JavaScript reads the saved preference.
+
+### Section 1 — Understand Light Mode and Dark Mode
+
+Light Mode uses a light background with dark text. It is often comfortable in well-lit offices and during daytime work.
+
+Dark Mode uses a dark background with lighter text. It can reduce screen brightness in darker environments and provide an alternative viewing preference.
+
+For business applications, theme switching is useful for dashboards, attendance systems, inventory applications, supplier evaluation systems, and internal administrative portals. It improves personalization and makes long working sessions more adaptable to user preferences.
+
+A theme switch should change the application's appearance without changing its business logic or data.
+
+### Section 2 — Understand browser Local Storage
+
+Local Storage is a browser feature that allows a website to save small amounts of text data on the user's device.
+
+For this project, we will save a simple value:
+
+```javascript
+localStorage.setItem("theme", "dark");
+```
+
+The browser stores the preference under the key `theme`, with the value `dark`.
+
+Later, JavaScript can retrieve it:
+
+```javascript
+const savedTheme = localStorage.getItem("theme");
+```
+
+If the user has never selected a theme, the result is `null`.
+
+### Local Storage compared with other storage methods
+
+| Storage         | Lifetime                                          | Sent automatically to server?         | Typical purpose                                      |
+| --------------- | ------------------------------------------------- | ------------------------------------- | ---------------------------------------------------- |
+| Local Storage   | Until removed or browser data is cleared          | No                                    | Theme preferences, UI settings                       |
+| Cookies         | Depends on cookie expiration and browser policies | Yes, when applicable to the request   | Authentication sessions, server-readable preferences |
+| Session Storage | Usually until the browser tab's page session ends | No                                    | Temporary tab-specific state                         |
+| Database        | Until application data is deleted or changed      | Through application/server operations | Business records and shared user data                |
+
+### Advantages of Local Storage
+
+* Easy to implement using JavaScript.
+
+* Does not require a backend controller or database.
+
+* Works after page refreshes.
+
+* Usually persists when the browser is closed and reopened.
+
+* Does not send the stored value with every HTTP request.
+
+### Limitations
+
+* The preference belongs to the browser and origin, not to a user account.
+
+* It is not automatically synchronized across computers or browsers.
+
+* Users can clear it, and private browsing can have different persistence behavior.
+
+* JavaScript can read and modify it, so never store passwords, authentication tokens, or sensitive business data in Local Storage.
+
+* A browser's Local Storage is not a substitute for server-side authorization or data validation.
+
+Why use it in Phase 1? Theme preferences are small, non-sensitive, browser-specific settings. Local Storage is a straightforward way to learn the complete theme-switching workflow without adding unnecessary backend complexity.
+
+### Section 3 — Create the ASP.NET Core MVC project
+
+We will use Visual Studio 2022 and the .NET 8 SDK.
+
+### Step 1: Open Visual Studio 2022
+
+* Launch Visual Studio 2022.
+
+* Select Create a new project.
+
+* Wait for the template list to appear.
+
+### Step 2: Choose the project template
+
+![Getting Started With Visual Studio 2022 Community Edition](https://images.openai.com/static-rsc-4/Mjut8ce2f2c1Y95Zx9x7auw1ozFXS12yctbGhjwnHNa26nvLgI31Jcy-5v6I7EB3EG_tbC2ciBuWhnBG4cBAqlc29E8ZEEwmE5FTCnE4Lm5aY6aqkXk54lTtVbn9W0Qhfx4ItDUBnmznjRdkKmTFRRa3L05DPC8W2zT2PCkcPV1wCApNvkv0yjKsgfZYseV4?purpose=fullsize)
+
+Select ASP.NET Core Web App (Model-View-Controller).
+
+Make sure you choose the MVC template, not Razor Pages, Blazor, or the empty ASP.NET Core template.
+
+Click Next.
+
+### Step 3: Configure the project
+
+Use these example settings:
+
+| Setting                                          | Recommended value                 |
+| ------------------------------------------------ | --------------------------------- |
+| Project name                                     | ThemeToggleMvc                    |
+| Location                                         | Your preferred development folder |
+| Solution name                                    | ThemeToggleMvc                    |
+| Place solution and project in the same directory | Optional                          |
+
+Click Next.
+
+### Step 4: Select .NET 8
+
+![Get started with ASP.NET Core MVC | Microsoft Learn](https://images.openai.com/static-rsc-4/qSN6DxGQP-z_yB1vDP1t7G77emG9V9KDga8GoIicwLqiuelCULZ_5tMcIeFAaodPFPP2914oSmZTjnHAm-VE0oXnanFDEEa93Nek8Ftu9xzUAHKXgdkmpMnFnNS7c8jfszzRXFa9yYwRbi2TYhEbL4MJDN-xJLM7nUyAsZnebt4NTnAQhWGyC5VHAapP-gap?purpose=fullsize)
+
+Use the following configuration:
+
+| Option                          | Selection         | Reason                                                        |
+| ------------------------------- | ----------------- | ------------------------------------------------------------- |
+| Framework                       | .NET 8.0          | This tutorial targets .NET 8                                  |
+| Authentication type             | None              | Theme switching does not require authentication               |
+| Configure for HTTPS             | Checked           | Recommended for local development and deployment              |
+| Enable container support        | Unchecked         | Not needed for this tutorial                                  |
+| Do not use top-level statements | Unchecked/default | The generated project can use the modern Program.cs structure |
+
+If an option is absent in your Visual Studio installation, leave it at its default.
+
+Important: .NET 8 is an LTS release, but Microsoft support is time-limited. In October 2026, .NET 8 is approaching its scheduled end of support on November 10, 2026. You can follow this tutorial with .NET 8 as requested, but plan to upgrade to a supported .NET release before production deployment.
+
+Click Create.
+
+### Step 5: Run the generated application
+
+* Wait for Visual Studio to create the project.
+
+* Select the HTTPS launch profile.
+
+* Press `F5` to run with debugging, or `Ctrl + F5` to run without debugging.
+
+* Your default MVC website should open in the browser.
+
+At this point, you have a working MVC application. Next, we will customize its styling and shared layout.
+
+### Section 4 — Understand the MVC folder structure
+
+An MVC application separates request handling, data, and presentation.
+
+Controllers/
+
+Handles incoming requests and selects which view to display. For example, `HomeController.cs` handles the home page.
+
+Models/
+
+Contains classes representing application data and business concepts. Our theme toggle does not require a model.
+
+Views/
+
+Contains Razor `.cshtml` files that generate HTML. `Views/Shared/` holds reusable views, including `_Layout.cshtml`.
+
+wwwroot/
+
+Contains static files served to the browser, including CSS, JavaScript, images, and fonts.
+
+### Our target file structure
+
+Your project will look approximately like this:
+
+```text
+ThemeToggleMvc/
+├── Controllers/
+│   └── HomeController.cs
+├── Models/
+├── Views/
+│   ├── Home/
+│   │   └── Index.cshtml
+│   └── Shared/
+│       ├── _Layout.cshtml
+│       └── _ValidationScriptsPartial.cshtml
+├── wwwroot/
+│   ├── css/
+│   │   ├── site.css
+│   │   └── theme.css
+│   ├── js/
+│   │   ├── site.js
+│   │   └── theme.js
+│   └── lib/
+│       └── bootstrap/
+├── Program.cs
+└── ThemeToggleMvc.csproj
+```
+
+Do not delete the existing `site.css`, `site.js`, or Bootstrap files. We will add `theme.css` and `theme.js` alongside the generated files.
+
+### Section 5 — Create `theme.css`
+
+In Solution Explorer:
+
+* Expand `wwwroot`.
+
+* Expand or create the `css` folder.
+
+* Right-click `css` → Add → New Item.
+
+* Create a CSS file named `theme.css`.
+
+### Step 1: Understand CSS variables
+
+CSS variables allow you to define colors once and reuse them throughout your application.
+
+For example:
+
+```css
+:root {
+    --app-background: #f8fafc;
+    --app-text: #1e293b;
+}
+
+body {
+    background-color: var(--app-background);
+    color: var(--app-text);
+}
+```
+
+* `:root` selects the document's root element, normally the `<html>` element.
+
+* `--app-background` is a custom CSS property.
+
+* `var(--app-background)` reads the property's current value.
+
+* `data-theme` is a custom HTML attribute we will use to identify the active theme.
+
+When the value of a CSS variable changes, all styles that use it can update automatically.
+
+### Step 2: Add the theme variables
+
+Paste the following into `wwwroot/css/theme.css`:
+
+```css
+
+/* =========================================
+   1. LIGHT THEME (DEFAULT)
+   ========================================= */
+
+:root,
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --app-background: #f8fafc;
+    --app-text: #1e293b;
+    --app-muted-text: #64748b;
+    --app-card: #ffffff;
+    --app-border: #e2e8f0;
+
+    --app-navbar: #ffffff;
+    --app-navbar-text: #1e293b;
+
+    --app-primary: #2563eb;
+    --app-primary-hover: #1d4ed8;
+
+    --app-input-background: #ffffff;
+    --app-table-header: #f1f5f9;
+    --app-hover: #f1f5f9;
+
+    --app-shadow: 0 2px 8px rgb(15 23 42 / 6%);
+}
+
+/* =========================================
+   2. DARK THEME
+   ========================================= */
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --app-background: #0f172a;
+    --app-text: #e2e8f0;
+    --app-muted-text: #94a3b8;
+    --app-card: #1e293b;
+    --app-border: #334155;
+
+    --app-navbar: #111827;
+    --app-navbar-text: #f8fafc;
+
+    --app-primary: #60a5fa;
+    --app-primary-hover: #93c5fd;
+
+    --app-input-background: #0f172a;
+    --app-table-header: #273449;
+    --app-hover: #273449;
+
+    --app-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+}
+
+/* =========================================
+   3. GLOBAL PAGE STYLES
+   ========================================= */
+
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    background-color: var(--app-background);
+    color: var(--app-text);
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+/* =========================================
+   4. NAVIGATION BAR
+   ========================================= */
+
+.app-navbar {
+    background-color: var(--app-navbar);
+    color: var(--app-navbar-text);
+    border-bottom: 1px solid var(--app-border);
+}
+
+.app-navbar .navbar-brand,
+.app-navbar .nav-link {
+    color: var(--app-navbar-text);
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .navbar-brand:hover {
+    color: var(--app-primary);
+}
+
+/* =========================================
+   5. CARDS AND CONTENT PANELS
+   ========================================= */
+
+.app-card {
+    background-color: var(--app-card);
+    color: var(--app-text);
+    border: 1px solid var(--app-border);
+    box-shadow: var(--app-shadow);
+    border-radius: 0.75rem;
+}
+
+/* =========================================
+   6. TABLES
+   ========================================= */
+
+.app-table {
+    --bs-table-bg: var(--app-card);
+    --bs-table-color: var(--app-text);
+    --bs-table-border-color: var(--app-border);
+    --bs-table-striped-bg: var(--app-hover);
+    --bs-table-striped-color: var(--app-text);
+    --bs-table-hover-bg: var(--app-hover);
+    --bs-table-hover-color: var(--app-text);
+
+    margin-bottom: 0;
+}
+
+.app-table thead th {
+    background-color: var(--app-table-header);
+    color: var(--app-text);
+}
+
+/* =========================================
+   7. FORMS
+   ========================================= */
+
+.form-control,
+.form-select {
+    background-color: var(--app-input-background);
+    color: var(--app-text);
+    border-color: var(--app-border);
+}
+
+.form-control::placeholder {
+    color: var(--app-muted-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--app-input-background);
+    color: var(--app-text);
+    border-color: var(--app-primary);
+    box-shadow: 0 0 0 0.2rem
+        color-mix(in srgb, var(--app-primary) 25%, transparent);
+}
+
+.form-check-input {
+    background-color: var(--app-input-background);
+    border-color: var(--app-border);
+}
+
+.form-check-input:checked {
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+}
+
+/* =========================================
+   8. BUTTONS
+   ========================================= */
+
+.btn-theme-primary {
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+    color: #ffffff;
+}
+
+.btn-theme-primary:hover {
+    background-color: var(--app-primary-hover);
+    border-color: var(--app-primary-hover);
+    color: #ffffff;
+}
+
+/* =========================================
+   9. DROPDOWNS
+   ========================================= */
+
+.dropdown-menu {
+    background-color: var(--app-card);
+    border-color: var(--app-border);
+    box-shadow: var(--app-shadow);
+}
+
+.dropdown-menu .dropdown-item {
+    color: var(--app-text);
+}
+
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+    background-color: var(--app-hover);
+    color: var(--app-text);
+}
+
+/* =========================================
+   10. OTHER COMMON ELEMENTS
+   ========================================= */
+
+a {
+    color: var(--app-primary);
+}
+
+a:hover {
+    color: var(--app-primary-hover);
+}
+
+.text-muted {
+    color: var(--app-muted-text) !important;
+}
+
+hr {
+    border-color: var(--app-border);
+    opacity: 1;
+}
+
+/* Keep keyboard users informed about focus. */
+
+:focus-visible {
+    outline: 2px solid var(--app-primary);
+    outline-offset: 2px;
+}
+
+/* Respect reduced-motion preferences. */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}
+```
+
+### Step 3: Understand the main properties
+
+| Property                 | Purpose                                                                |
+| ------------------------ | ---------------------------------------------------------------------- |
+| --app-background         | Main page background                                                   |
+| --app-text               | Default text color                                                     |
+| --app-card               | Cards, panels, and content surfaces                                    |
+| --app-border             | Borders and separators                                                 |
+| --app-navbar             | Navigation bar background                                              |
+| color-scheme             | Informs the browser about light or dark native controls                |
+| transition               | Smoothly animates color changes                                        |
+| :root[data-theme="dark"] | Applies dark variables when the HTML root has the dark theme attribute |
+
+We also use some Bootstrap CSS variables in `.app-table` to make Bootstrap tables follow our custom colors.
+
+Why use `data-theme`?
+
+Our JavaScript will update the HTML element from:
+
+```html
+<html data-theme="light">
+```
+
+to:
+
+```html
+<html data-theme="dark">
+```
+
+The browser then applies the matching CSS variables without needing to rewrite every element's color individually.
+
+Note: CSS `color-scheme` also affects browser-native elements such as scrollbars and some form controls. It does not automatically recolor every Bootstrap component; that is why we define explicit component styles.
+
+### Section 6 — Apply the theme styles to your MVC pages
+
+Creating CSS variables is not enough. Your HTML elements must use those variables.
+
+### Step 1: Understand Bootstrap and custom classes
+
+Bootstrap 5 provides standard classes such as:
+
+* `navbar` for navigation.
+
+* `card` for content panels.
+
+* `table` for tables.
+
+* `form-control` for text inputs.
+
+* `btn` for buttons.
+
+* `dropdown-menu` for dropdown lists.
+
+Our theme stylesheet adds custom classes such as `app-navbar`, `app-card`, and `app-table`. These let us control the theme without having to replace Bootstrap.
+
+### Step 2: Update the home page
+
+Open `Views/Home/Index.cshtml`. You can replace the generated sample content with this example:
+
+```html
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container py-4">
+    <div class="mb-4">
+        <h1>Dashboard</h1>
+        <p class="text-muted">
+            Welcome to your ASP.NET Core MVC application.
+        </p>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card app-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Users</h5>
+                    <p class="display-6 mb-0">128</p>
+                    <p class="text-muted mb-0">Registered users</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card app-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Requests</h5>
+                    <p class="display-6 mb-0">42</p>
+                    <p class="text-muted mb-0">Awaiting review</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card app-card">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Sample Records</h5>
+
+            <div class="table-responsive">
+                <table class="table table-striped
+                              table-hover app-table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>001</td>
+                            <td>Juan Dela Cruz</td>
+                            <td>Active</td>
+                        </tr>
+                        <tr>
+                            <td>002</td>
+                            <td>Maria Santos</td>
+                            <td>Pending</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+This is sample display data only, not a database connection.
+
+### Step 3: Test the theme styles later
+
+After completing the JavaScript and layout sections, the cards, tables, and forms should follow the selected theme. If a component remains the wrong color, inspect its CSS classes and check whether `site.css` or another stylesheet overrides the theme.
+
+### Section 7 — Modify `Views/Shared/_Layout.cshtml`
+
+### What is `_Layout.cshtml`?
+
+Think of `_Layout.cshtml` as the common frame around every page in your application.
+
+It usually contains:
+
+* The HTML document structure.
+
+* The navigation bar.
+
+* CSS and JavaScript references.
+
+* A `RenderBody()` placeholder.
+
+* Footer content.
+
+For example, the Dashboard and About pages can have different content while sharing the same navigation bar and theme button.
+
+### Step 1: Open the layout
+
+In Solution Explorer, open:
+
+`Views/Shared/_Layout.cshtml`
+
+The default template typically includes Bootstrap, `site.css`, and a section that renders the page-specific content.
+
+We will preserve the essential MVC layout structure and add the theme button.
+
+### Step 2: Add the theme toggle button
+
+The following button uses inline SVG icons, so you do not need to install an icon library just to display the moon and sun.
+
+The moon represents the action available in Light Mode: switch to Dark Mode. The sun represents the action available in Dark Mode: switch to Light Mode.
+
+Here is the complete layout you can use in Section 18. For now, focus on the button markup:
+
+```html
+
+<button type="button"
+        id="themeToggle"
+        class="btn btn-outline-secondary btn-sm d-inline-flex
+               align-items-center gap-2"
+        aria-label="Switch to dark mode"
+        aria-pressed="false"
+        title="Switch theme">
+
+    <svg id="themeMoonIcon"
+         xmlns="http://www.w3.org/2000/svg"
+         width="18" height="18"
+         viewBox="0 0 24 24"
+         fill="none" stroke="currentColor"
+         stroke-width="2"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         aria-hidden="true">
+        <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472
+                 c.405-.022.617.463.402.807a6.5 6.5
+                 0 0 0 8.268 8.268c.344-.215.829-.003.803.397z" />
+    </svg>
+
+    <svg id="themeSunIcon"
+         xmlns="http://www.w3.org/2000/svg"
+         width="18" height="18"
+         viewBox="0 0 24 24"
+         fill="none" stroke="currentColor"
+         stroke-width="2"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         aria-hidden="true"
+         hidden>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2" />
+        <path d="M12 20v2" />
+        <path d="m4.93 4.93 1.42 1.42" />
+        <path d="m17.65 17.65 1.42 1.42" />
+        <path d="M2 12h2" />
+        <path d="M20 12h2" />
+        <path d="m6.35 17.65-1.42 1.42" />
+        <path d="m19.07 4.93-1.42 1.42" />
+    </svg>
+
+    <span id="themeToggleText">Dark Mode</span>
+</button>
+```
+
+The important attributes are:
+
+* `type="button"` prevents the button from accidentally submitting a form.
+
+* `id="themeToggle"` allows JavaScript to find the button.
+
+* `aria-label` gives assistive technology a meaningful label.
+
+* `aria-pressed` communicates the current toggle state.
+
+* `hidden` initially hides the sun icon.
+
+* The SVG paths draw the moon and sun without relying on emoji rendering.
+
+The button becomes functional when we connect it to `theme.js`.
+
+### Section 8 — Create `wwwroot/js/theme.js`
+
+### Step 1: Create the JavaScript file
+
+* Right-click `wwwroot/js`.
+
+* Select Add → New Item.
+
+* Create a JavaScript file named `theme.js`.
+
+### Step 2: Understand the JavaScript concepts
+
+| Concept                  | Simple explanation                            |
+| ------------------------ | --------------------------------------------- |
+| document                 | Represents the current HTML page              |
+| document.documentElement | Refers to the root <html> element             |
+| DOMContentLoaded         | Fires after the HTML document has been parsed |
+| getAttribute()           | Reads an HTML attribute                       |
+| setAttribute()           | Adds or updates an HTML attribute             |
+| localStorage.getItem()   | Reads a saved browser value                   |
+| localStorage.setItem()   | Saves a browser value                         |
+| addEventListener()       | Registers code to run when an event occurs    |
+
+For example:
+
+```javascript
+document.documentElement.setAttribute(
+    "data-theme",
+    "dark"
+);
+```
+
+This changes the root HTML element's theme attribute to `dark`. Our CSS then applies the dark theme variables.
+
+### Section 9 — Load the saved theme
+
+Use this line to retrieve the user's previous choice:
+
+```javascript
+const savedTheme = localStorage.getItem("theme");
+```
+
+There are two main possibilities:
+
+* The user previously selected Dark Mode, so `savedTheme` is `"dark"`.
+
+* The user has never selected a theme, so `savedTheme` is `null`.
+
+We should validate the saved value rather than blindly trusting it:
+
+```javascript
+const isValidTheme =
+    savedTheme === "light" || savedTheme === "dark";
+
+const initialTheme = isValidTheme
+    ? savedTheme
+    : "light";
+```
+
+This ensures the application uses only recognized values. If storage is empty or contains an invalid value, Light Mode is the fallback.
+
+### Section 10 — Save the selected theme
+
+Use `localStorage.setItem()`:
+
+```javascript
+localStorage.setItem("theme", "dark");
+```
+
+This stores a string under the key `theme`.
+
+Local Storage generally persists across refreshes and browser restarts, until the user clears site data or the browser removes the data. It is associated with the site's origin, which includes its scheme, host, and port.
+
+For example, `https://localhost:7001` and `https://example.com` have separate storage areas.
+
+Unlike server session storage, Local Storage does not automatically expire after a few minutes. That makes it suitable for a long-term theme preference.
+
+Important: Browser storage may be unavailable in some restricted environments. Accessing it can throw an exception, so our final script will handle that gracefully.
+
+### Section 11 — Toggle the theme
+
+The theme toggle performs five operations:
+
+* Reads the current theme.
+
+* Determines the opposite theme.
+
+* Updates the root HTML attribute.
+
+* Saves the new value to Local Storage.
+
+* Updates the icon and accessible button state.
+
+The core logic looks like this:
+
+```javascript
+const currentTheme =
+    document.documentElement.getAttribute("data-theme");
+
+const nextTheme =
+    currentTheme === "dark" ? "light" : "dark";
+
+document.documentElement.setAttribute(
+    "data-theme",
+    nextTheme
+);
+
+localStorage.setItem("theme", nextTheme);
+```
+
+The conditional expression `condition ? valueA : valueB` is called a ternary operator. It means:
+
+* If the current theme is dark, switch to light.
+
+* Otherwise, switch to dark.
+
+We will combine this logic with storage error handling and icon updates in the complete script.
+
+### Section 12 — Update the moon and sun icons
+
+The icon should reflect the action the user can take.
+
+| Current theme | Icon shown | Button text |
+| ------------- | ---------- | ----------- |
+| Light         | Moon       | Dark Mode   |
+| Dark          | Sun        | Light Mode  |
+
+This makes the toggle easier to understand without requiring the user to guess what it does.
+
+JavaScript can update the icons using:
+
+```javascript
+moonIcon.hidden = theme === "dark";
+sunIcon.hidden = theme !== "dark";
+```
+
+It can also update the accessible state:
+
+```javascript
+button.setAttribute(
+    "aria-pressed",
+    String(theme === "dark")
+);
+```
+
+We will put these operations inside a reusable function named `updateThemeUI()`.
+
+### Section 13 — Connect CSS and JavaScript
+
+Open `Views/Shared/_Layout.cshtml`.
+
+### Step 1: Reference the stylesheet in `<head>`
+
+Add this after Bootstrap's CSS and after `site.css`:
+
+```html
+<link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+```
+
+Why?
+
+* `rel="stylesheet"` tells the browser this file contains CSS.
+
+* `~/css/theme.css` points to the file under `wwwroot`.
+
+* `asp-append-version="true"` adds a version query string based on the file contents, helping browsers fetch updated CSS after changes.
+
+Place `theme.css` after `site.css` so your theme rules can override the default site styles where their selectors have equal specificity.
+
+### Step 2: Reference the JavaScript before `</body>`
+
+Add:
+
+```html
+<script src="~/js/theme.js" asp-append-version="true"></script>
+```
+
+Place it after the page content and before the closing `</body>` tag.
+
+Loading the script at the end of the body means most of the HTML elements have already been parsed when the script runs. We will still use `DOMContentLoaded` so initialization is safe and predictable.
+
+### Step 3: Why not put the code directly into `_Layout.cshtml`?
+
+A separate JavaScript file is easier to maintain, debug, and reuse. The layout should contain the shared page structure, while `theme.js` should contain theme behavior.
+
+One further improvement is to load the saved theme as early as possible in the document head to reduce a flash of the wrong theme on page refresh. We will cover that production-oriented improvement in the final solution.
+
+### Section 14 — Test the application
+
+Once you have connected the layout, CSS, and JavaScript, run the project using `F5`.
+
+Use this checklist to verify the expected behavior.
+
+### Testing checklist
+
+0 of 6
+
+Initial load
+
+The page starts in Light Mode when no preference exists.
+
+Switch to Dark Mode
+
+The background, cards, text, and navigation change immediately.
+
+Refresh page
+
+The selected theme remains active.
+
+Close and reopen browser
+
+The theme is restored when the same site is opened again, provided its storage remains available.
+
+Switch back to Light Mode
+
+The moon icon returns and the light colors are restored.
+
+Navigate to another MVC page
+
+The same theme and toggle appear on every page using the shared layout.
+
+### Verify Local Storage in the browser
+
+In Chrome or Edge:
+
+* Open your application.
+
+* Press `F12` to open Developer Tools.
+
+* Open the Application tab.
+
+* Expand Local Storage and select your site's origin.
+
+* Find the key `theme`.
+
+Expected values:
+
+| User selection | Key   | Value |
+| -------------- | ----- | ----- |
+| Light Mode     | theme | light |
+| Dark Mode      | theme | dark  |
+
+You can also run this in the Console:
+
+```javascript
+localStorage.getItem("theme");
+```
+
+If Dark Mode is selected, the result should be `"dark"`.
+
+### Section 15 — Debug common problems
+
+| Problem                        | Possible cause                                         | Diagnosis and fix                                                                           |
+| ------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Theme does not change          | CSS does not use the theme variables                   | Inspect <html> and verify data-theme changes between light and dark.                        |
+| Theme resets after refresh     | Save logic is missing or uses a different key          | Verify localStorage.getItem("theme") and localStorage.setItem("theme", ...) both use theme. |
+| JavaScript is not loading      | Wrong file path or browser cache                       | In DevTools → Network, find theme.js. Check for a 404 and correct the path.                 |
+| CSS is not loading             | Incorrect stylesheet reference                         | Inspect Network for theme.css; check the file is inside wwwroot/css.                        |
+| Local Storage is not saving    | Browser storage restrictions or a JavaScript exception | Check Console errors and test whether the storage is accessible.                            |
+| Button click does nothing      | Wrong button ID or missing event listener              | Confirm the button ID is themeToggle and the script selects that exact ID.                  |
+| Theme flashes before switching | Theme is initialized too late                          | Set the saved theme in an early head script before the CSS is applied.                      |
+| Cards stay light in Dark Mode  | Bootstrap or custom styles override the theme          | Apply the app-card class and inspect computed CSS values.                                   |
+
+### Useful debugging commands
+
+Check the active theme:
+
+```javascript
+document.documentElement.getAttribute("data-theme");
+```
+
+Check the saved preference:
+
+```javascript
+localStorage.getItem("theme");
+```
+
+Manually test Dark Mode:
+
+```javascript
+document.documentElement.setAttribute("data-theme", "dark");
+```
+
+If the last command changes the page appearance, your CSS is working and you should investigate the JavaScript event handler or storage initialization.
+
+If you want to reset your test:
+
+```javascript
+localStorage.removeItem("theme");
+location.reload();
+```
+
+This clears only the theme preference for the current origin, not all site data.
+
+### Section 16 — Best practices for a production-oriented implementation
+
+### 1\. Use CSS variables
+
+Avoid duplicating a complete set of styles for every theme. Define the colors once and use `var()` throughout your CSS.
+
+### 2\. Keep JavaScript separate
+
+Store the theme logic in `wwwroot/js/theme.js`. Avoid putting the entire implementation into a Razor view.
+
+### 3\. Use transitions carefully
+
+A short transition such as `0.2s ease` helps the interface feel smooth. Avoid excessive animations, especially for users who prefer reduced motion.
+
+### 4\. Respect Bootstrap
+
+Bootstrap's default components have their own styles. Use Bootstrap for structure and responsive layout, and custom CSS variables for your application's theme.
+
+For Bootstrap 5.3, you can also set `data-bs-theme="dark"` or `data-bs-theme="light"` to use Bootstrap's built-in color-mode support. Our implementation will synchronize that attribute with `data-theme`.
+
+### 5\. Consider accessibility
+
+* Keep sufficient contrast between text and backgrounds.
+
+* Use a real `<button>` instead of a clickable `<span>`.
+
+* Maintain keyboard focus indicators.
+
+* Update accessible labels when the action changes.
+
+* Do not rely on color alone to communicate status.
+
+### 6\. Prevent a flash of the wrong theme
+
+If you only read Local Storage when `theme.js` loads at the end of the page, the browser may briefly render Light Mode before switching to Dark Mode.
+
+A small, guarded initialization script in the document head can set the theme before the stylesheet renders. This is included in the final solution below.
+
+### 7\. Plan for IIS hosting
+
+When you eventually publish the application to IIS:
+
+* Keep `theme.css` and `theme.js` under `wwwroot`.
+
+* Use `asp-append-version="true"` to reduce stale CSS/JavaScript cache issues.
+
+* Test the deployed HTTPS URL separately from `localhost`.
+
+* Remember that Local Storage is specific to the deployed origin.
+
+* Ensure static files are served by the ASP.NET Core application and that IIS hosting is correctly configured.
+
+### Section 17 — Optional enhancements
+
+These are optional additions. The core implementation does not require any of them.
+
+### Enhancement 1: Smooth theme transition
+
+The base stylesheet already uses:
+
+```css
+body {
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+```
+
+You can add transitions to cards and navigation:
+
+```css
+.app-card,
+.app-navbar {
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+```
+
+Keep transitions short to avoid slowing down the interface.
+
+### Enhancement 2: Bootstrap Icons
+
+If you prefer a ready-made icon library, you can use Bootstrap Icons.
+
+Add the Bootstrap Icons stylesheet to your layout's `<head>`:
+
+```html
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+```
+
+Then use:
+
+```html
+<i class="bi bi-moon" aria-hidden="true"></i>
+<i class="bi bi-sun" aria-hidden="true"></i>
+```
+
+For production, pin and review your external dependency versions, and consider hosting the files locally if your deployment policies require it. The final implementation below uses inline SVG, so this library is optional.
+
+### Enhancement 3: Animated toggle
+
+You can add a subtle hover effect:
+
+```css
+#themeToggle {
+    transition:
+        transform 0.15s ease,
+        background-color 0.2s ease;
+}
+
+#themeToggle:hover {
+    transform: translateY(-1px);
+}
+```
+
+Do not animate the button so much that it interferes with clicking or keyboard navigation.
+
+### Enhancement 4: Detect the operating system's theme
+
+Browsers expose the operating system preference through `matchMedia()`:
+
+```javascript
+const prefersDark = window.matchMedia(
+    "(prefers-color-scheme: dark)"
+).matches;
+```
+
+If `prefersDark` is `true`, the operating system currently prefers dark colors.
+
+For this Phase 1 implementation, we will not automatically override a saved user selection. We will default to the operating system preference only when no valid saved preference exists. The user's explicit selection remains in Local Storage.
+
+This is useful for first-time visitors who have not chosen a theme yet.
+
+### Section 18 — Complete working solution
+
+This section brings everything together. Create or replace the following three files, and keep your existing Bootstrap library, `Program.cs`, and MVC controllers.
+
+The final version includes:
+
+* Light Mode and Dark Mode.
+
+* Local Storage persistence.
+
+* An operating system preference fallback for first-time visitors.
+
+* A moon/sun icon and descriptive button text.
+
+* Bootstrap 5 color-mode synchronization.
+
+* Early initialization to reduce incorrect-theme flashing.
+
+* Graceful handling of inaccessible Local Storage.
+
+* Accessibility and reduced-motion considerations.
+
+### File 1 — `wwwroot/css/theme.css`
+
+Replace the contents of `theme.css` with this complete stylesheet.
+
+```css
+
+/* =========================================
+   THEME VARIABLES
+   ========================================= */
+
+:root,
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --app-background: #f8fafc;
+    --app-text: #1e293b;
+    --app-muted-text: #64748b;
+    --app-card: #ffffff;
+    --app-border: #e2e8f0;
+
+    --app-navbar: #ffffff;
+    --app-navbar-text: #1e293b;
+
+    --app-primary: #2563eb;
+    --app-primary-hover: #1d4ed8;
+
+    --app-input-background: #ffffff;
+    --app-table-header: #f1f5f9;
+    --app-hover: #f1f5f9;
+
+    --app-shadow: 0 2px 8px rgb(15 23 42 / 6%);
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --app-background: #0f172a;
+    --app-text: #e2e8f0;
+    --app-muted-text: #94a3b8;
+    --app-card: #1e293b;
+    --app-border: #334155;
+
+    --app-navbar: #111827;
+    --app-navbar-text: #f8fafc;
+
+    --app-primary: #60a5fa;
+    --app-primary-hover: #93c5fd;
+
+    --app-input-background: #0f172a;
+    --app-table-header: #273449;
+    --app-hover: #273449;
+
+    --app-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+}
+
+/* =========================================
+   GLOBAL STYLES
+   ========================================= */
+
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    background-color: var(--app-background);
+    color: var(--app-text);
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+/* =========================================
+   NAVIGATION
+   ========================================= */
+
+.app-navbar {
+    background-color: var(--app-navbar);
+    color: var(--app-navbar-text);
+    border-bottom: 1px solid var(--app-border);
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.app-navbar .navbar-brand,
+.app-navbar .nav-link {
+    color: var(--app-navbar-text);
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .navbar-brand:hover {
+    color: var(--app-primary);
+}
+
+/* =========================================
+   CARDS
+   ========================================= */
+
+.app-card {
+    background-color: var(--app-card);
+    color: var(--app-text);
+    border: 1px solid var(--app-border);
+    box-shadow: var(--app-shadow);
+    border-radius: 0.75rem;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+/* =========================================
+   TABLES
+   ========================================= */
+
+.app-table {
+    --bs-table-bg: var(--app-card);
+    --bs-table-color: var(--app-text);
+    --bs-table-border-color: var(--app-border);
+
+    --bs-table-striped-bg: var(--app-hover);
+    --bs-table-striped-color: var(--app-text);
+
+    --bs-table-hover-bg: var(--app-hover);
+    --bs-table-hover-color: var(--app-text);
+
+    margin-bottom: 0;
+}
+
+.app-table thead th {
+    background-color: var(--app-table-header);
+    color: var(--app-text);
+}
+
+/* =========================================
+   FORMS
+   ========================================= */
+
+.form-control,
+.form-select {
+    background-color: var(--app-input-background);
+    color: var(--app-text);
+    border-color: var(--app-border);
+}
+
+.form-control::placeholder {
+    color: var(--app-muted-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--app-input-background);
+    color: var(--app-text);
+    border-color: var(--app-primary);
+
+    box-shadow: 0 0 0 0.2rem
+        color-mix(in srgb, var(--app-primary) 25%, transparent);
+}
+
+.form-check-input {
+    background-color: var(--app-input-background);
+    border-color: var(--app-border);
+}
+
+.form-check-input:checked {
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+}
+
+/* =========================================
+   BUTTONS
+   ========================================= */
+
+.btn-theme-primary {
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+    color: #ffffff;
+}
+
+.btn-theme-primary:hover {
+    background-color: var(--app-primary-hover);
+    border-color: var(--app-primary-hover);
+    color: #ffffff;
+}
+
+#themeToggle {
+    transition:
+        transform 0.15s ease,
+        background-color 0.2s ease;
+}
+
+#themeToggle:hover {
+    transform: translateY(-1px);
+}
+
+/* =========================================
+   DROPDOWNS
+   ========================================= */
+
+.dropdown-menu {
+    background-color: var(--app-card);
+    border-color: var(--app-border);
+    box-shadow: var(--app-shadow);
+}
+
+.dropdown-menu .dropdown-item {
+    color: var(--app-text);
+}
+
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+    background-color: var(--app-hover);
+    color: var(--app-text);
+}
+
+/* =========================================
+   OTHER ELEMENTS
+   ========================================= */
+
+a {
+    color: var(--app-primary);
+}
+
+a:hover {
+    color: var(--app-primary-hover);
+}
+
+.text-muted {
+    color: var(--app-muted-text) !important;
+}
+
+hr {
+    border-color: var(--app-border);
+    opacity: 1;
+}
+
+:focus-visible {
+    outline: 2px solid var(--app-primary);
+    outline-offset: 2px;
+}
+
+/* =========================================
+   ACCESSIBILITY
+   ========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}
+```
+
+### File 2 — `wwwroot/js/theme.js`
+
+This is the main theme controller. It initializes the theme, reads and writes Local Storage, changes the HTML attributes, and updates the button.
+
+```javascript
+
+"use strict";
+
+(() => {
+    const STORAGE_KEY = "theme";
+
+    const root = document.documentElement;
+
+    function isValidTheme(theme) {
+        return theme === "light" || theme === "dark";
+    }
+
+    function getSavedTheme() {
+        try {
+            const savedTheme = localStorage.getItem(STORAGE_KEY);
+
+            return isValidTheme(savedTheme)
+                ? savedTheme
+                : null;
+        } catch (error) {
+            // Storage may be unavailable in restricted browsers.
+            return null;
+        }
+    }
+
+    function getSystemTheme() {
+        try {
+            return window.matchMedia(
+                "(prefers-color-scheme: dark)"
+            ).matches
+                ? "dark"
+                : "light";
+        } catch (error) {
+            return "light";
+        }
+    }
+
+    function applyTheme(theme) {
+        if (!isValidTheme(theme)) {
+            theme = "light";
+        }
+
+        root.setAttribute("data-theme", theme);
+
+        // Keep Bootstrap 5.3 color-mode styles synchronized.
+        root.setAttribute("data-bs-theme", theme);
+
+        return theme;
+    }
+
+    function saveTheme(theme) {
+        try {
+            localStorage.setItem(STORAGE_KEY, theme);
+            return true;
+        } catch (error) {
+            // Theme still works for the current page,
+            // but may not persist after navigation or refresh.
+            return false;
+        }
+    }
+
+    function updateThemeUI(theme) {
+        const button = document.getElementById("themeToggle");
+        const moonIcon = document.getElementById("themeMoonIcon");
+        const sunIcon = document.getElementById("themeSunIcon");
+        const buttonText = document.getElementById("themeToggleText");
+
+        if (!button || !moonIcon || !sunIcon || !buttonText) {
+            return;
+        }
+
+        const isDark = theme === "dark";
+
+        // Moon in Light Mode; sun in Dark Mode.
+        moonIcon.hidden = isDark;
+        sunIcon.hidden = !isDark;
+
+        // Describe the action the button will perform.
+        buttonText.textContent = isDark
+            ? "Light Mode"
+            : "Dark Mode";
+
+        button.setAttribute(
+            "aria-label",
+            isDark
+                ? "Switch to light mode"
+                : "Switch to dark mode"
+        );
+
+        button.setAttribute(
+            "aria-pressed",
+            String(isDark)
+        );
+
+        button.title = isDark
+            ? "Switch to Light Mode"
+            : "Switch to Dark Mode";
+    }
+
+    function initializeTheme() {
+        // The head script may already have applied the theme.
+        const currentTheme = root.getAttribute("data-theme");
+        const savedTheme = getSavedTheme();
+
+        // An explicit saved preference takes priority.
+        const initialTheme = savedTheme
+            || (isValidTheme(currentTheme)
+                ? currentTheme
+                : getSystemTheme());
+
+        const theme = applyTheme(initialTheme);
+
+        updateThemeUI(theme);
+
+        const button = document.getElementById("themeToggle");
+
+        if (button) {
+            button.addEventListener("click", () => {
+                const activeTheme =
+                    root.getAttribute("data-theme") || "light";
+
+                const nextTheme = activeTheme === "dark"
+                    ? "light"
+                    : "dark";
+
+                const appliedTheme = applyTheme(nextTheme);
+
+                saveTheme(appliedTheme);
+                updateThemeUI(appliedTheme);
+            });
+        }
+    }
+
+    // Initialize after the HTML has been parsed.
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeTheme,
+            { once: true }
+        );
+    } else {
+        initializeTheme();
+    }
+})();
+```
+
+### Understanding how the JavaScript works
+
+1\. `STORAGE_KEY`
+
+```javascript
+const STORAGE_KEY = "theme";
+```
+
+This defines the key used for saving and retrieving the preference. Reusing a constant prevents spelling inconsistencies.
+
+2\. `getSavedTheme()`
+
+Reads the value from Local Storage. If storage is unavailable or the value is invalid, the function returns `null`.
+
+3\. `getSystemTheme()`
+
+Checks the operating system's current color preference. It is used only when no saved theme exists and no valid theme has already been applied.
+
+4\. `applyTheme()`
+
+Updates both `data-theme` and `data-bs-theme`. The first attribute controls our custom CSS; the second enables Bootstrap 5.3's built-in color modes.
+
+5\. `saveTheme()`
+
+Writes the preference to Local Storage. It returns `false` if storage cannot be accessed, but does not prevent the theme from changing on the current page.
+
+6\. `updateThemeUI()`
+
+Finds the button and icons and updates their visibility, text, tooltip, and accessibility attributes. The null checks prevent errors if an element is missing.
+
+7\. `initializeTheme()`
+
+Sets the initial theme and attaches the click handler. The event handler determines the opposite theme, applies it, saves it, and updates the button.
+
+The script is wrapped in an immediately invoked function expression (IIFE). This keeps its variables and helper functions out of the global JavaScript scope.
+
+### File 3 — `Views/Shared/_Layout.cshtml`
+
+Replace your existing layout with the following version. It includes the shared navigation bar, theme button, CSS references, early theme initialization, and JavaScript references.
+
+```html
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - ThemeToggleMvc</title>
+
+    <!-- Apply the saved theme before the CSS renders. -->
+    <script>
+        (() => {
+            try {
+                const savedTheme = localStorage.getItem("theme");
+
+                const validTheme =
+                    savedTheme === "light" ||
+                    savedTheme === "dark";
+
+                const theme = validTheme
+                    ? savedTheme
+                    : (
+                        window.matchMedia(
+                            "(prefers-color-scheme: dark)"
+                        ).matches
+                            ? "dark"
+                            : "light"
+                    );
+
+                document.documentElement.setAttribute(
+                    "data-theme",
+                    theme
+                );
+
+                document.documentElement.setAttribute(
+                    "data-bs-theme",
+                    theme
+                );
+            } catch (error) {
+                // Fall back to the default light theme.
+            }
+        })();
+    </script>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css"
+          asp-append-version="true" />
+
+    <!-- Existing project styles -->
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <!-- Custom theme styles: keep after site.css -->
+    <link rel="stylesheet"
+          href="~/css/theme.css"
+          asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm app-navbar">
+            <div class="container-fluid">
+
+                <a class="navbar-brand fw-semibold"
+                   asp-area=""
+                   asp-controller="Home"
+                   asp-action="Index">
+                    ThemeToggleMvc
+                </a>
+
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation">
+
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse"
+                     id="mainNavbar">
+
+                    <ul class="navbar-nav me-auto mb-2 mb-sm-0">
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-area=""
+                               asp-controller="Home"
+                               asp-action="Index">
+                                Home
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-area=""
+                               asp-controller="Home"
+                               asp-action="Privacy">
+                                Privacy
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Theme toggle -->
+                    <div class="d-flex align-items-center">
+                        <button type="button"
+                                id="themeToggle"
+                                class="btn btn-outline-secondary btn-sm
+                                       d-inline-flex align-items-center gap-2"
+                                aria-label="Switch to dark mode"
+                                aria-pressed="false"
+                                title="Switch theme">
+
+                            <!-- Moon: visible in Light Mode -->
+                            <svg id="themeMoonIcon"
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 width="18"
+                                 height="18"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round"
+                                 aria-hidden="true">
+
+                                <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472
+                                         c.405-.022.617.463.402.807a6.5 6.5
+                                         0 0 0 8.268 8.268c.344-.215.829-.003.803.397z" />
+                            </svg>
+
+                            <!-- Sun: visible in Dark Mode -->
+                            <svg id="themeSunIcon"
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 width="18"
+                                 height="18"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round"
+                                 aria-hidden="true"
+                                 hidden>
+
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2" />
+                                <path d="M12 20v2" />
+                                <path d="m4.93 4.93 1.42 1.42" />
+                                <path d="m17.65 17.65 1.42 1.42" />
+                                <path d="M2 12h2" />
+                                <path d="M20 12h2" />
+                                <path d="m6.35 17.65-1.42 1.42" />
+                                <path d="m19.07 4.93-1.42 1.42" />
+                            </svg>
+
+                            <span id="themeToggleText">
+                                Dark Mode
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
+
+    <footer class="container py-3 mt-4 border-top">
+        <span class="text-muted">
+            &copy; @DateTime.Now.Year - ThemeToggleMvc
+        </span>
+    </footer>
+
+    <!-- Bootstrap JavaScript bundle -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"
+            asp-append-version="true"></script>
+
+    <!-- Custom theme logic -->
+    <script src="~/js/theme.js"
+            asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+```
+
+### Important notes about the layout
+
+1\. The early initialization script
+
+The small script in the `<head>` reads Local Storage before the stylesheets are applied. This reduces the chance that a user sees Light Mode briefly when Dark Mode was saved.
+
+2\. The Bootstrap color-mode attribute
+
+We update both `data-theme` and `data-bs-theme`. Bootstrap's built-in dark styling requires Bootstrap 5.3 or later. If your generated project uses an earlier Bootstrap 5 release, upgrade to Bootstrap 5.3.x or newer before relying on `data-bs-theme`.
+
+3\. The JavaScript at the bottom
+
+`theme.js` loads after the page's HTML. It attaches the event handler and updates the icons once the button exists.
+
+4\. The Razor layout sections
+
+`@RenderBody()` displays the current page's content. `@RenderSectionAsync()` allows individual views to add page-specific CSS or JavaScript without duplicating the shared layout.
+
+5\. Existing Bootstrap and site files
+
+The paths above match the typical MVC template. If your project uses a different Bootstrap folder or CDN reference, retain your working Bootstrap reference and adjust the path accordingly.
+
+### Final verification
+
+After saving all three files:
+
+* Run the application with `F5`.
+
+* Confirm that the home page appears.
+
+* Click Dark Mode and verify that the page background and cards change.
+
+* Check that the icon changes from a moon to a sun and the button text becomes Light Mode.
+
+* Refresh the page and confirm Dark Mode remains active.
+
+* Open DevTools → Application → Local Storage and verify `theme = dark`.
+
+* Click Light Mode, refresh again, and verify `theme = light`.
+
+* Navigate to the Privacy page and confirm the theme remains consistent.
+
+If the navigation bar toggler icon is difficult to see in Dark Mode, check the Bootstrap version and the computed styles for `.navbar-toggler-icon`. You can explicitly style the toggler button if necessary.
+
+### What Phase 1 accomplishes
+
+Theme switching
+
+The user can change themes instantly, without sending a request to a controller.
+
+Persistent browser preference
+
+Local Storage remembers the selection across page refreshes and normally across browser restarts.
+
+Reusable MVC design
+
+The shared layout makes the toggle available across pages, while CSS variables centralize theme colors.
+
+No backend dependency
+
+No database, Entity Framework, ASP.NET Identity, or custom controller action is required for theme switching.
+
+### Limitations to keep in mind
+
+This approach stores preferences per browser and website origin. It does not synchronize themes across devices or user accounts. Also, Local Storage can be cleared or disabled, and theme selection must never be treated as a security control.
+
+For the requested Phase 1, this is a practical starting point for learning ASP.NET Core MVC, Bootstrap, CSS variables, and JavaScript together. Before production deployment, test accessibility, the actual Bootstrap version, and all of your application's components in both themes.
+
+
+
+
+
+****
+
+
 Act as a Senior ASP.NET Core MVC Developer, .NET 8 Architect, UI/UX Developer, and Technical Instructor.
 
 Create a comprehensive beginner-friendly step-by-step tutorial for implementing a Light Mode and Dark Mode Theme Toggle in an ASP.NET Core Web App (Model-View-Controller) using .NET 8.0 (Long Term Support).
