@@ -1,0 +1,372 @@
+Act as a Senior ASP.NET Core MVC Developer, .NET 8 Architect, UI/UX Developer, and Technical Instructor.
+
+Create a comprehensive beginner-friendly step-by-step tutorial for implementing a Light Mode and Dark Mode Theme Toggle in an ASP.NET Core Web App (Model-View-Controller) using .NET 8.0 (Long Term Support).
+
+This tutorial should focus ONLY on Phase 1: Local Storage Approach.
+
+Assume I am new to ASP.NET Core MVC and want detailed explanations of every step, concept, file, folder, line of code, and why it is needed.
+
+Technology Stack:
+- ASP.NET Core MVC
+- .NET 8 LTS
+- Visual Studio 2022
+- Bootstrap 5
+- JavaScript
+- CSS
+- IIS Hosting (future deployment)
+
+The tutorial must be practical, production-ready, and use best practices.
+
+=====================================
+SECTION 1 – PROJECT OVERVIEW
+=====================================
+
+Explain:
+
+- What Light Mode and Dark Mode are
+- Why modern applications support theme switching
+- Benefits for users
+- Benefits for business applications
+- Expected final result
+
+Show a simple workflow:
+
+User clicks Theme Toggle
+↓
+Theme changes instantly
+↓
+Theme saved to Local Storage
+↓
+User refreshes page
+↓
+Theme automatically reloads
+
+Explain this process in simple terms.
+
+=====================================
+SECTION 2 – UNDERSTANDING LOCAL STORAGE
+=====================================
+
+Explain:
+
+- What Local Storage is
+- How browsers store data
+- How Local Storage differs from:
+  - Cookies
+  - Session Storage
+  - Database Storage
+
+Include advantages and disadvantages.
+
+Explain why Local Storage is the recommended starting point for learning theme switching.
+
+=====================================
+SECTION 3 – CREATE THE PROJECT
+=====================================
+
+Provide step-by-step instructions for:
+
+Visual Studio 2022
+
+1. Create New Project
+2. Choose ASP.NET Core Web App (Model-View-Controller)
+3. Configure Project Name
+4. Select .NET 8 LTS
+5. Configure HTTPS
+6. Authentication Settings
+7. Create the Project
+
+Explain every option selected.
+
+=====================================
+SECTION 4 – UNDERSTANDING MVC STRUCTURE
+=====================================
+
+Explain:
+
+- Controllers
+- Models
+- Views
+- wwwroot
+
+Show the project structure:
+
+Controllers
+Views
+Views/Shared
+wwwroot/css
+wwwroot/js
+
+Explain what each folder does.
+
+=====================================
+SECTION 5 – CREATE THEME.CSS
+=====================================
+
+Create:
+
+wwwroot/css/theme.css
+
+Explain:
+
+- CSS Variables
+- :root selector
+- data-theme attribute
+- var() function
+
+Create Light Theme variables:
+
+- Background color
+- Text color
+- Card color
+- Border color
+- Navbar color
+
+Create Dark Theme variables.
+
+Explain every CSS property.
+
+=====================================
+SECTION 6 – APPLY THEME STYLES
+=====================================
+
+Show how to apply CSS variables to:
+
+- Body
+- Navbar
+- Cards
+- Tables
+- Forms
+- Buttons
+- Dropdowns
+
+Explain every styling rule.
+
+Show complete code samples.
+
+=====================================
+SECTION 7 – MODIFY _LAYOUT.CSHTML
+=====================================
+
+File:
+
+Views/Shared/_Layout.cshtml
+
+Explain:
+
+- What _Layout.cshtml is
+- Why it is used
+- How all pages inherit from it
+
+Add:
+
+- Theme Toggle Button
+- Bootstrap styling
+- Moon icon
+- Sun icon
+
+Explain every line of code.
+
+=====================================
+SECTION 8 – CREATE THEME.JS
+=====================================
+
+Create:
+
+wwwroot/js/theme.js
+
+Explain:
+
+- JavaScript file structure
+- DOMContentLoaded
+- document
+- document.documentElement
+- setAttribute()
+- getAttribute()
+
+Show complete code.
+
+Explain every line.
+
+=====================================
+SECTION 9 – LOAD SAVED THEME
+=====================================
+
+Implement:
+
+localStorage.getItem()
+
+Explain:
+
+- How browser retrieves saved values
+- What happens if nothing is saved
+
+Provide code with detailed explanation.
+
+=====================================
+SECTION 10 – SAVE THEME
+=====================================
+
+Implement:
+
+localStorage.setItem()
+
+Explain:
+
+- How browser stores data
+- Where data is stored
+- How long it remains
+
+Provide code examples.
+
+=====================================
+SECTION 11 – TOGGLE THEME
+=====================================
+
+Implement functionality that:
+
+1. Detects current theme
+2. Switches to opposite theme
+3. Updates HTML attribute
+4. Saves selection to Local Storage
+5. Updates icon
+
+Provide complete code.
+
+Explain every line.
+
+=====================================
+SECTION 12 – UPDATE ICONS
+=====================================
+
+Implement:
+
+Moon icon for Light Mode
+
+Sun icon for Dark Mode
+
+Explain:
+
+- Why icon changes improve UX
+- How JavaScript updates icons dynamically
+
+Provide complete code.
+
+=====================================
+SECTION 13 – CONNECT CSS AND JAVASCRIPT
+=====================================
+
+Show how to reference:
+
+theme.css
+
+and
+
+theme.js
+
+inside _Layout.cshtml.
+
+Explain:
+
+- Why CSS goes in the head section
+- Why JavaScript should load before closing body tag
+
+=====================================
+SECTION 14 – TESTING
+=====================================
+
+Explain how to test:
+
+Scenario 1:
+Initial load
+
+Scenario 2:
+Switch to Dark Mode
+
+Scenario 3:
+Refresh page
+
+Scenario 4:
+Close browser
+
+Scenario 5:
+Open browser again
+
+Explain expected results.
+
+=====================================
+SECTION 15 – DEBUGGING
+=====================================
+
+Show common issues:
+
+1. Theme not changing
+2. Theme resets after refresh
+3. JavaScript not loading
+4. CSS not loading
+5. localStorage not saving
+6. Button click not working
+
+Explain:
+- Cause
+- How to diagnose
+- How to fix
+
+=====================================
+SECTION 16 – BEST PRACTICES
+=====================================
+
+Explain:
+
+- Use CSS Variables instead of duplicate CSS
+- Keep JavaScript in separate files
+- Use Transition Effects
+- Use Bootstrap for consistency
+- Organize custom styles properly
+
+Provide examples.
+
+=====================================
+SECTION 17 – OPTIONAL ENHANCEMENTS
+=====================================
+
+Show how to add:
+
+1. Smooth Theme Transition
+2. Bootstrap Icons
+3. Animated Theme Switch
+4. Detect Operating System Preference
+
+Example:
+
+window.matchMedia('(prefers-color-scheme: dark)')
+
+Explain each feature.
+
+=====================================
+SECTION 18 – COMPLETE WORKING SOLUTION
+=====================================
+
+Provide the complete final code for:
+
+1. theme.css
+2. theme.js
+3. _Layout.cshtml
+
+Ensure all code works together correctly.
+
+=====================================
+IMPORTANT REQUIREMENTS
+=====================================
+
+- Use ASP.NET Core MVC (.NET 8)
+- Use Bootstrap 5
+- Use Local Storage only
+- Do NOT use SQL Server
+- Do NOT use Entity Framework
+- Do NOT use ASP.NET Identity
+- Do NOT use a database
+
+The goal is to build a fully working Light and Dark Mode Theme Toggle using only Local Storage.
+
+Explain every concept using beginner-friendly language and real-world examples.
