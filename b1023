@@ -1,3 +1,1982 @@
+### ASP.NET Core MVC .NET 8: Complete Sidebar Navigation Tutorial
+
+This tutorial will help you extend your existing ASP.NET Core MVC application with a modern, responsive sidebar while preserving your existing Light Mode / Dark Mode theme toggle using Local Storage.
+
+The implementation is designed for an internal business application, such as an employee management system, supplier evaluation system, approval workflow, or reporting dashboard.
+
+We'll use Bootstrap 5, Razor Views, CSS variables, JavaScript, and ASP.NET Core MVC routing. SQL Server and IIS remain part of your existing application architecture; you do not need to change your database or hosting configuration just to add the sidebar.
+
+### What you'll build
+
+![Vertical Layout | Skote - Admin & Dashboard Template](https://images.openai.com/static-rsc-4/69DROvfGdrS3niv1jBC1QFdtmfUSD4i9Lgyjj9iBDp2PIKea5y7ZGRNhZiv2m3pNryISX3mJ9QLvAdrRczji0gV7GbgNg7xI9YEoVj0fJWNCdFV8UiE3rj4BUXginzM7Eu44rFOgiB6-k1OJ8TOzX1_U2NWigxlvqgwXNanLNM9YQZbPcqAqMOgxfRAaZ6hb?purpose=fullsize)
+
+![Welcome to Front - Admin & Dashboard Template!](https://images.openai.com/static-rsc-4/CsuAeJmnvxEef3ATTot3fQWX2zsyX959bK49Rgy8LTdk2o2sokQDPbNa8lDWCzt0X0t3cLVSVGUpdgsAsr7_7YuN6wcN_UHlcL2R5atIaptPmZP6_PS1ep0OkXR5xsAcCg9Wpe2NWcOJOHE-oLlHO2i7VUMv8sEhuPaGcP5t2TqabZNt50taSBr-CyAV9XEI?purpose=fullsize)
+
+![Adminator — The vanilla-JS admin dashboard for 2026](https://images.openai.com/static-rsc-4/q4gRx5tb-zC8BxMyDOCXLEmewf8acPpFGhSNWEUyrjD1H344kNUbkgForQM69dteIpnbTfoqX1KzhEh18n7_26kNCQnyD2_m85UgDOh0JFP57BbJzZznnuYiC5VxdZTRaHtKwMTYmKXSUZtUs4OP9-ZfpEcL7G8qDR07c3lIjYSjbTlv4XTUtbjzPQvrXcW1?purpose=fullsize)
+
+The finished sidebar will include:
+
+* Fixed desktop sidebar with expanded and icon-only modes.
+
+* Mobile hamburger button, slide-in sidebar, and overlay.
+
+* Dashboard, Profile, Employees, Reports, Settings, and Logout links.
+
+* Automatic current-page highlighting using Razor.
+
+* Persistent sidebar and theme preferences using Local Storage.
+
+* Coordinated light and dark color schemes.
+
+* Keyboard-accessible controls and responsive Bootstrap layout.
+
+* A structure suitable for future role-based navigation and Microsoft Identity integration.
+
+Important: This is a UI and navigation implementation, not an authorization system. Hiding a menu item does not prevent a user from accessing its URL. Protected controllers and actions must still enforce authorization on the server.
+
+### 1\. Understanding the sidebar
+
+A sidebar is a vertical navigation area positioned along the side of an application. It provides access to major application features while leaving the central area available for page content.
+
+Common examples include:
+
+* HR systems — employee records, attendance, leave applications.
+
+* Inventory systems — items, warehouses, stock movements.
+
+* Approval systems — pending requests, approvals, audit history.
+
+* Employee management systems — employee profiles, departments, reports.
+
+* Dashboard applications — analytics, reports, settings, administration.
+
+### Sidebar versus top navigation
+
+| Feature               | Sidebar               | Top navigation                  |
+| --------------------- | --------------------- | ------------------------------- |
+| Many menu items       | Works well            | Can become crowded              |
+| Persistent navigation | Yes, on desktop       | Yes                             |
+| Content width         | Uses horizontal space | More space for content          |
+| Nested menus          | Natural fit           | Often less convenient           |
+| Mobile behavior       | Usually slides in     | Often collapses into a dropdown |
+
+For enterprise applications, a sidebar is useful when users repeatedly switch between several functional areas. A top bar still has a role: it can contain the hamburger button, page title, theme control, and user actions.
+
+### 2\. Project structure and responsibilities
+
+In an ASP.NET Core MVC application, the sidebar should normally live in the shared layout rather than be copied into every page.
+
+| File or folder              | Responsibility                                                        |
+| --------------------------- | --------------------------------------------------------------------- |
+| Views/Shared/_Layout.cshtml | Shared sidebar, top bar, content container, and script references     |
+| wwwroot/css/site.css        | Theme colors, sidebar layout, responsive rules, and transitions       |
+| wwwroot/js/site.js          | Sidebar behavior, theme switching, and preference persistence         |
+| Controllers/                | MVC actions that handle navigation requests                           |
+| Views/Home/                 | Dashboard and home page Razor views                                   |
+| Views/Employee/             | Employee-related views                                                |
+| wwwroot/lib/                | Local client-side libraries, including Bootstrap if installed locally |
+| Program.cs                  | MVC registration, routing, and middleware configuration               |
+
+### How the pieces work together
+
+_Layout.cshtml
+
+Shared navigation and page shell
+
+site.css
+
+Appearance and responsive layout
+
+site.js
+
+Theme and sidebar interactions
+
+MVC Controller → Razor View
+
+The requested page is displayed in the shared layout
+
+### Before you begin
+
+* Open your existing ASP.NET Core MVC project in Visual Studio.
+
+* Confirm that it targets `net8.0`.
+
+* Locate `Views/Shared/_Layout.cshtml`, `wwwroot/css/site.css`, and `wwwroot/js/site.js`.
+
+* Back up your current layout and JavaScript, especially the working theme toggle.
+
+* Check whether Bootstrap 5 and Bootstrap Icons or Font Awesome are already installed.
+
+Do not create duplicate files if these already exist. The following implementation replaces or merges the relevant sections of those files.
+
+### 3\. Create the sidebar layout
+
+Open `Views/Shared/_Layout.cshtml`.
+
+A shared layout is the right place for navigation because every view using the layout will automatically display the same sidebar. ASP.NET Core MVC renders the individual page where `@RenderBody()` appears.
+
+### Step 3.1 — Understand the layout
+
+We'll use these main sections:
+
+* `<aside>` — contains the sidebar.
+
+* `<nav>` — contains navigation links.
+
+* `<header>` — contains the hamburger button, page heading, and theme toggle.
+
+* `<main>` — contains the current MVC view.
+
+* An overlay — lets mobile users dismiss the sidebar by tapping outside it.
+
+### Step 3.2 — Replace `_Layout.cshtml`
+
+The following is the complete layout for this tutorial. It assumes the standard MVC Tag Helpers are enabled in `Views/_ViewImports.cshtml`.
+
+```cshtml
+
+@{
+    var currentController =
+        ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+
+    var currentAction =
+        ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+
+    var pageTitle = ViewData["Title"]?.ToString() ?? "Dashboard";
+
+    var activeSection = currentController.ToLowerInvariant();
+}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@pageTitle - Enterprise Portal</title>
+
+    @* Load the saved theme before the page is painted. *@
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("themePreference");
+                const theme = savedTheme === "dark" ? "dark" : "light";
+                document.documentElement.setAttribute("data-theme", theme);
+            } catch {
+                document.documentElement.setAttribute("data-theme", "light");
+            }
+        })();
+    </script>
+
+    @* Bootstrap 5 - use your existing local version if available. *@
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    @* Bootstrap Icons. For production, consider hosting a pinned version locally. *@
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+
+<body>
+    <div class="app-shell">
+
+        @* Mobile overlay. *@
+        <button type="button"
+                id="sidebarOverlay"
+                class="sidebar-overlay"
+                aria-label="Close navigation"
+                tabindex="-1"
+                hidden>
+        </button>
+
+        @* Sidebar. *@
+        <aside id="appSidebar"
+               class="app-sidebar"
+               aria-label="Main navigation">
+
+            <div class="sidebar-brand">
+                <a asp-controller="Home"
+                   asp-action="Index"
+                   class="brand-link"
+                   aria-label="Enterprise Portal home">
+                    <span class="brand-logo">
+                        <i class="bi bi-grid-1x2-fill" aria-hidden="true"></i>
+                    </span>
+
+                    <span class="sidebar-label brand-name">
+                        Enterprise Portal
+                    </span>
+                </a>
+
+                <button type="button"
+                        id="sidebarClose"
+                        class="sidebar-close mobile-only"
+                        aria-label="Close navigation">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-caption sidebar-label">
+                WORKSPACE
+            </div>
+
+            <nav class="sidebar-nav">
+                <a asp-controller="Home"
+                   asp-action="Index"
+                   class="sidebar-link @(activeSection == "home" ? "active" : "")"
+                   aria-current="@(activeSection == "home" ? "page" : null)"
+                   title="Dashboard">
+                    <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                    <span class="sidebar-label">Dashboard</span>
+                </a>
+
+                <a asp-controller="Profile"
+                   asp-action="Index"
+                   class="sidebar-link @(activeSection == "profile" ? "active" : "")"
+                   aria-current="@(activeSection == "profile" ? "page" : null)"
+                   title="Profile">
+                    <i class="bi bi-person-circle" aria-hidden="true"></i>
+                    <span class="sidebar-label">Profile</span>
+                </a>
+
+                <a asp-controller="Employee"
+                   asp-action="Index"
+                   class="sidebar-link @(activeSection == "employee" ? "active" : "")"
+                   aria-current="@(activeSection == "employee" ? "page" : null)"
+                   title="Employees">
+                    <i class="bi bi-people" aria-hidden="true"></i>
+                    <span class="sidebar-label">Employees</span>
+                </a>
+
+                <a asp-controller="Reports"
+                   asp-action="Index"
+                   class="sidebar-link @(activeSection == "reports" ? "active" : "")"
+                   aria-current="@(activeSection == "reports" ? "page" : null)"
+                   title="Reports">
+                    <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                    <span class="sidebar-label">Reports</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-caption sidebar-label">
+                PREFERENCES
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Preferences">
+                <a asp-controller="Settings"
+                   asp-action="Index"
+                   class="sidebar-link @(activeSection == "settings" ? "active" : "")"
+                   aria-current="@(activeSection == "settings" ? "page" : null)"
+                   title="Settings">
+                    <i class="bi bi-gear" aria-hidden="true"></i>
+                    <span class="sidebar-label">Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                @* Logout should submit a POST request in a real app. *@
+                <form asp-controller="Account"
+                      asp-action="Logout"
+                      method="post"
+                      class="logout-form">
+                    <button type="submit"
+                            class="sidebar-link sidebar-logout"
+                            title="Logout">
+                        <i class="bi bi-box-arrow-right"
+                           aria-hidden="true"></i>
+                        <span class="sidebar-label">Logout</span>
+                    </button>
+                </form>
+
+                <button type="button"
+                        id="sidebarCollapse"
+                        class="sidebar-collapse desktop-only"
+                        aria-label="Collapse sidebar"
+                        aria-expanded="true"
+                        title="Collapse sidebar">
+                    <i class="bi bi-layout-sidebar-inset"
+                       aria-hidden="true"></i>
+                    <span class="sidebar-label">Collapse sidebar</span>
+                </button>
+            </div>
+        </aside>
+
+        @* Main content area. *@
+        <div id="appMain" class="app-main">
+
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button type="button"
+                            id="sidebarToggle"
+                            class="icon-button mobile-only"
+                            aria-label="Open navigation"
+                            aria-controls="appSidebar"
+                            aria-expanded="false">
+                        <i class="bi bi-list" aria-hidden="true"></i>
+                    </button>
+
+                    <div>
+                        <div class="page-heading">@pageTitle</div>
+                        <div class="page-subheading">
+                            Enterprise Management System
+                        </div>
+                    </div>
+                </div>
+
+                <div class="topbar-actions">
+                    <button type="button"
+                            id="themeToggle"
+                            class="icon-button theme-toggle"
+                            aria-label="Switch to dark theme"
+                            title="Switch theme">
+                        <i class="bi bi-moon-stars-fill"
+                           aria-hidden="true"></i>
+                    </button>
+                </div>
+            </header>
+
+            <main id="mainContent" class="page-content" tabindex="-1">
+                @RenderBody()
+            </main>
+
+            <footer class="app-footer">
+                <span>Enterprise Portal</span>
+                <span>&copy; @DateTime.Now.Year</span>
+            </footer>
+        </div>
+    </div>
+
+    @* Load Bootstrap before any page-specific scripts that depend on it. *@
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+```
+
+### Why these elements matter
+
+| Element or attribute      | Purpose                                                                     |
+| ------------------------- | --------------------------------------------------------------------------- |
+| asp-controller            | Identifies the MVC controller.                                              |
+| asp-action                | Identifies the controller action.                                           |
+| aria-label                | Provides an accessible name for controls and navigation.                    |
+| aria-current="page"       | Identifies the current navigation link to assistive technology.             |
+| @RenderBody()             | Inserts the current view into the layout.                                   |
+| @RenderSectionAsync()     | Allows individual views to add page-specific scripts.                       |
+| asp-append-version="true" | Adds a file version query string to help browsers fetch updated CSS and JS. |
+| data-theme                | Controls which CSS theme variables are active.                              |
+
+The `activeSection` value uses the current controller name, so the Employees menu stays highlighted for actions such as `Employee/Details` as well as `Employee/Index`.
+
+Note: The Logout link is a POST form because signing out changes authentication state. Connect it to your real sign-out implementation. Do not add a fake logout action that only redirects without clearing the authentication session.
+
+### Step 3.3 — Check Tag Helpers
+
+Open `Views/_ViewImports.cshtml`. Ensure it contains:
+
+```cshtml
+
+@using YourProjectName
+@using YourProjectName.Models
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+```
+
+Replace `YourProjectName` with your project's actual namespace. If the existing file already imports the correct namespaces and Tag Helpers, keep it as is.
+
+### 4\. Configure the MVC navigation destinations
+
+The sidebar generates links, but each destination must correspond to a real controller and action.
+
+For example:
+
+`asp-controller="Employee"` and `asp-action="Index"` normally generate a link to the `Index` action of `EmployeeController`.
+
+If your application already has equivalent controllers, use those rather than creating duplicates.
+
+### Example controller
+
+Place this in `Controllers/EmployeeController.cs`:
+
+```csharp
+
+using Microsoft.AspNetCore.Mvc;
+
+namespace YourProjectName.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        public IActionResult Index()
+        {
+            ViewData["Title"] = "Employees";
+            return View();
+        }
+    }
+}
+```
+
+Place a corresponding view at `Views/Employee/Index.cshtml`:
+
+```cshtml
+
+@{
+    ViewData["Title"] = "Employees";
+}
+
+<div class="content-card">
+    <h2>Employee Management</h2>
+    <p>Welcome to the employee management module.</p>
+</div>
+```
+
+Repeat the pattern for Profile, Reports, and Settings if these modules do not already exist. For the Dashboard, the standard template commonly provides `HomeController.Index()`.
+
+### Example menu routing
+
+| Menu      | Controller         | Action        |
+| --------- | ------------------ | ------------- |
+| Dashboard | HomeController     | Index         |
+| Profile   | ProfileController  | Index         |
+| Employees | EmployeeController | Index         |
+| Reports   | ReportsController  | Index         |
+| Settings  | SettingsController | Index         |
+| Logout    | AccountController  | Logout (POST) |
+
+MVC routing, rather than manually concatenated URLs, lets ASP.NET Core generate the appropriate link. It also makes the application easier to maintain if routes change.
+
+### 5\. Add professional sidebar styling
+
+Open `wwwroot/css/site.css`.
+
+The CSS below provides the full design system for the layout. It includes light and dark themes, the fixed desktop sidebar, icon-only collapsed state, mobile drawer, overlay, focus states, and reduced-motion support.
+
+Replace the previous sidebar CSS if you have any. If `site.css` also contains form styles or other existing components, preserve those unrelated styles and merge the following rules rather than deleting them.
+
+### Complete `wwwroot/css/site.css`
+
+```css
+
+/* =========================================================
+   1. THEME VARIABLES
+   ========================================================= */
+
+:root {
+    color-scheme: light;
+
+    --sidebar-expanded-width: 260px;
+    --sidebar-collapsed-width: 76px;
+    --mobile-sidebar-width: 280px;
+    --topbar-height: 72px;
+
+    --app-bg: #f5f7fb;
+    --surface: #ffffff;
+    --text-primary: #1f2937;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #475569;
+    --sidebar-muted: #94a3b8;
+    --sidebar-hover: #f1f5f9;
+    --sidebar-active-bg: #eaf2ff;
+    --sidebar-active-text: #1d4ed8;
+    --sidebar-active-border: #2563eb;
+
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --topbar-bg: #ffffff;
+    --overlay-bg: rgba(15, 23, 42, 0.5);
+
+    --card-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+    --sidebar-shadow: 2px 0 16px rgba(15, 23, 42, 0.04);
+
+    --transition-speed: 220ms;
+}
+
+/* Dark theme overrides. */
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    --app-bg: #111827;
+    --surface: #1f2937;
+    --text-primary: #e5e7eb;
+    --text-secondary: #a8b3c5;
+    --border-color: #374151;
+
+    --sidebar-bg: #172033;
+    --sidebar-text: #cbd5e1;
+    --sidebar-muted: #94a3b8;
+    --sidebar-hover: #253149;
+    --sidebar-active-bg: #243c65;
+    --sidebar-active-text: #bfdbfe;
+    --sidebar-active-border: #60a5fa;
+
+    --accent: #60a5fa;
+    --accent-hover: #93c5fd;
+    --topbar-bg: #1f2937;
+    --overlay-bg: rgba(0, 0, 0, 0.65);
+
+    --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    --sidebar-shadow: 2px 0 16px rgba(0, 0, 0, 0.15);
+}
+
+/* =========================================================
+   2. GLOBAL STYLES
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--app-bg);
+    color: var(--text-primary);
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    transition:
+        background-color var(--transition-speed) ease,
+        color var(--transition-speed) ease;
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    font: inherit;
+}
+
+a {
+    color: var(--accent);
+}
+
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* =========================================================
+   3. APPLICATION SHELL
+   ========================================================= */
+
+.app-shell {
+    min-height: 100vh;
+}
+
+.app-main {
+    min-height: 100vh;
+    margin-left: var(--sidebar-expanded-width);
+    display: flex;
+    flex-direction: column;
+    transition: margin-left var(--transition-speed) ease;
+}
+
+/* =========================================================
+   4. SIDEBAR
+   ========================================================= */
+
+.app-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1040;
+
+    display: flex;
+    flex-direction: column;
+
+    width: var(--sidebar-expanded-width);
+    height: 100vh;
+    height: 100dvh;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--sidebar-shadow);
+
+    transition:
+        width var(--transition-speed) ease,
+        transform var(--transition-speed) ease,
+        background-color var(--transition-speed) ease;
+}
+
+.sidebar-brand {
+    min-height: var(--topbar-height);
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.brand-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.brand-logo {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 20px;
+}
+
+.brand-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 15px;
+}
+
+.sidebar-caption {
+    padding: 24px 22px 10px;
+    color: var(--sidebar-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 0 12px;
+}
+
+.sidebar-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 13px;
+
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+
+    color: var(--sidebar-text);
+    text-decoration: none;
+    text-align: left;
+    font-weight: 500;
+
+    cursor: pointer;
+    transition:
+        background-color var(--transition-speed) ease,
+        color var(--transition-speed) ease;
+}
+
+.sidebar-link > i {
+    flex: 0 0 22px;
+    width: 22px;
+    text-align: center;
+    font-size: 19px;
+}
+
+.sidebar-link:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-primary);
+}
+
+.sidebar-link.active {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
+    font-weight: 600;
+}
+
+.sidebar-link.active::before {
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    left: 0;
+    width: 3px;
+    border-radius: 0 4px 4px 0;
+    background: var(--sidebar-active-border);
+    content: "";
+}
+
+.sidebar-label {
+    min-width: 0;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity var(--transition-speed) ease;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 14px 12px 18px;
+    border-top: 1px solid var(--border-color);
+}
+
+.logout-form {
+    margin: 0 0 8px;
+}
+
+.sidebar-logout {
+    color: #dc2626;
+}
+
+.sidebar-logout:hover {
+    background: rgba(220, 38, 38, 0.08);
+    color: #dc2626;
+}
+
+html[data-theme="dark"] .sidebar-logout {
+    color: #fca5a5;
+}
+
+.sidebar-collapse {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 13px;
+
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.sidebar-collapse:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-primary);
+}
+
+.sidebar-collapse i {
+    flex: 0 0 22px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.sidebar-close {
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* =========================================================
+   5. COLLAPSED SIDEBAR
+   ========================================================= */
+
+html.sidebar-collapsed .app-sidebar {
+    width: var(--sidebar-collapsed-width);
+}
+
+html.sidebar-collapsed .app-main {
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+html.sidebar-collapsed .sidebar-brand {
+    justify-content: center;
+    padding-right: 8px;
+    padding-left: 8px;
+}
+
+html.sidebar-collapsed .brand-link {
+    justify-content: center;
+}
+
+html.sidebar-collapsed .sidebar-label {
+    display: none;
+}
+
+html.sidebar-collapsed .sidebar-caption {
+    display: none;
+}
+
+html.sidebar-collapsed .sidebar-nav {
+    padding-right: 8px;
+    padding-left: 8px;
+}
+
+html.sidebar-collapsed .sidebar-link {
+    justify-content: center;
+    gap: 0;
+    padding-right: 8px;
+    padding-left: 8px;
+}
+
+html.sidebar-collapsed .sidebar-footer {
+    padding-right: 8px;
+    padding-left: 8px;
+}
+
+html.sidebar-collapsed .sidebar-collapse {
+    justify-content: center;
+    padding-right: 8px;
+    padding-left: 8px;
+}
+
+/* =========================================================
+   6. TOP BAR
+   ========================================================= */
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+
+    min-height: var(--topbar-height);
+    padding: 12px 28px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.topbar-left,
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.page-heading {
+    color: var(--text-primary);
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.page-subheading {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.icon-button {
+    width: 42px;
+    height: 42px;
+    display: inline-grid;
+    place-items: center;
+
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-primary);
+
+    cursor: pointer;
+    transition:
+        background-color var(--transition-speed) ease,
+        color var(--transition-speed) ease;
+}
+
+.icon-button:hover {
+    background: var(--sidebar-hover);
+}
+
+.icon-button i {
+    font-size: 20px;
+}
+
+/* =========================================================
+   7. PAGE CONTENT
+   ========================================================= */
+
+.page-content {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    padding: 28px;
+    color: var(--text-primary);
+}
+
+.content-card {
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--card-shadow);
+}
+
+.content-card h2,
+.content-card h3 {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.content-card p {
+    color: var(--text-secondary);
+}
+
+.app-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 28px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.mobile-only {
+    display: none !important;
+}
+
+/* =========================================================
+   8. MOBILE SIDEBAR OVERLAY
+   ========================================================= */
+
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1035;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: var(--overlay-bg);
+    cursor: pointer;
+}
+
+/* =========================================================
+   9. TABLET: 768px TO 991px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    /* Save space by default on tablet-sized screens. */
+    html:not(.sidebar-expanded) .app-sidebar {
+        width: var(--sidebar-collapsed-width);
+    }
+
+    html:not(.sidebar-expanded) .app-main {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+
+    html:not(.sidebar-expanded) .sidebar-label,
+    html:not(.sidebar-expanded) .sidebar-caption {
+        display: none;
+    }
+
+    html:not(.sidebar-expanded) .sidebar-brand {
+        justify-content: center;
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+
+    html:not(.sidebar-expanded) .sidebar-link {
+        justify-content: center;
+        gap: 0;
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+
+    html:not(.sidebar-expanded) .sidebar-nav,
+    html:not(.sidebar-expanded) .sidebar-footer {
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+
+    html:not(.sidebar-expanded) .sidebar-collapse {
+        justify-content: center;
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+
+    html.sidebar-expanded .app-sidebar {
+        width: var(--sidebar-expanded-width);
+    }
+
+    html.sidebar-expanded .app-main {
+        margin-left: var(--sidebar-expanded-width);
+    }
+
+    html.sidebar-expanded .sidebar-label {
+        display: inline;
+    }
+
+    html.sidebar-expanded .sidebar-caption {
+        display: block;
+    }
+
+    html.sidebar-expanded .sidebar-brand {
+        justify-content: flex-start;
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    html.sidebar-expanded .sidebar-link {
+        justify-content: flex-start;
+        gap: 14px;
+        padding-right: 13px;
+        padding-left: 13px;
+    }
+
+    html.sidebar-expanded .sidebar-nav,
+    html.sidebar-expanded .sidebar-footer {
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+
+    html.sidebar-expanded .sidebar-collapse {
+        justify-content: flex-start;
+        padding-right: 13px;
+        padding-left: 13px;
+    }
+
+    .page-content {
+        padding: 22px;
+    }
+}
+
+/* =========================================================
+   10. MOBILE: BELOW 768px
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+    .app-main,
+    html.sidebar-collapsed .app-main {
+        margin-left: 0;
+    }
+
+    .app-sidebar,
+    html.sidebar-collapsed .app-sidebar,
+    html.sidebar-expanded .app-sidebar {
+        width: min(var(--mobile-sidebar-width), 86vw);
+        transform: translateX(-105%);
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    html.mobile-sidebar-open .app-sidebar {
+        transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    /* Mobile must always show labels, even if desktop is collapsed. */
+    html.sidebar-collapsed .sidebar-label,
+    html.sidebar-collapsed .sidebar-caption {
+        display: initial;
+    }
+
+    html.sidebar-collapsed .sidebar-caption {
+        display: block;
+    }
+
+    html.sidebar-collapsed .sidebar-brand,
+    html.sidebar-expanded .sidebar-brand {
+        justify-content: space-between;
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    html.sidebar-collapsed .sidebar-link,
+    html.sidebar-expanded .sidebar-link {
+        justify-content: flex-start;
+        gap: 14px;
+        padding-right: 13px;
+        padding-left: 13px;
+    }
+
+    html.sidebar-collapsed .sidebar-nav,
+    html.sidebar-expanded .sidebar-nav,
+    html.sidebar-collapsed .sidebar-footer,
+    html.sidebar-expanded .sidebar-footer {
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+
+    html.sidebar-collapsed .sidebar-collapse,
+    html.sidebar-expanded .sidebar-collapse {
+        justify-content: flex-start;
+        padding-right: 13px;
+        padding-left: 13px;
+    }
+
+    .mobile-only {
+        display: inline-grid !important;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    .topbar {
+        min-height: 64px;
+        padding: 10px 16px;
+    }
+
+    .page-heading {
+        font-size: 17px;
+    }
+
+    .page-subheading {
+        font-size: 11px;
+    }
+
+    .page-content {
+        padding: 18px 14px;
+    }
+
+    .content-card {
+        padding: 18px;
+        border-radius: 12px;
+    }
+
+    .app-footer {
+        padding: 16px;
+    }
+
+    body.mobile-menu-open {
+        overflow: hidden;
+    }
+}
+
+/* =========================================================
+   11. REDUCED MOTION ACCESSIBILITY
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+```
+
+### What the main CSS properties do
+
+| Property                      | Why it is used                                                    |
+| ----------------------------- | ----------------------------------------------------------------- |
+| position: fixed               | Keeps the sidebar in place while the page scrolls.                |
+| inset: 0 auto 0 0             | Anchors the sidebar to the top, bottom, and left of the viewport. |
+| z-index                       | Controls which layer appears in front of another.                 |
+| overflow-y: auto              | Allows long navigation menus to scroll independently.             |
+| width                         | Defines expanded and collapsed sidebar sizes.                     |
+| margin-left                   | Moves the desktop content beside the sidebar.                     |
+| transform: translateX()       | Slides the mobile sidebar offscreen or onscreen.                  |
+| visibility and pointer-events | Prevent interaction with a hidden mobile sidebar.                 |
+| transition                    | Animates changes in width, color, and position.                   |
+| @media                        | Applies different layout rules at different screen widths.        |
+| CSS variables                 | Keep theme colors consistent and easy to change.                  |
+
+### Understanding the breakpoints
+
+Desktop — 992px and wider
+
+Sidebar stays visible. Users can collapse it to icons only.
+
+Tablet — 768px to 991px
+
+Sidebar defaults to compact mode and can be expanded using the collapse control.
+
+Mobile — below 768px
+
+Sidebar is hidden until opened with the hamburger button. An overlay closes it.
+
+These are design choices, not mandatory Bootstrap breakpoints. Bootstrap's grid and display utilities can complement them, but our custom CSS owns the sidebar behavior.
+
+### 6\. Create the JavaScript functionality
+
+Open `wwwroot/js/site.js`.
+
+This file will coordinate the sidebar and theme. Keeping the logic in one shared file means the behavior works consistently across MVC views.
+
+The implementation uses three Local Storage keys or concepts:
+
+* `themePreference` — stores `"light"` or `"dark"`.
+
+* `sidebarState` — stores `"expanded"` or `"collapsed"`.
+
+* `sidebarExpanded` — a temporary CSS class that allows tablet users to expand the sidebar without permanently changing the desktop preference.
+
+The persisted preference remains separate from the temporary mobile drawer state. Opening the drawer on a phone should not change the user's desktop preference.
+
+### Complete `wwwroot/js/site.js`
+
+```javascript
+
+"use strict";
+
+document.addEventListener("DOMContentLoaded", function () {
+    // =====================================================
+    // 1. FIND THE REQUIRED HTML ELEMENTS
+    // =====================================================
+
+    const root = document.documentElement;
+    const body = document.body;
+
+    const sidebar = document.getElementById("appSidebar");
+    const mainContent = document.getElementById("mainContent");
+
+    const collapseButton = document.getElementById("sidebarCollapse");
+    const mobileToggleButton = document.getElementById("sidebarToggle");
+    const mobileCloseButton = document.getElementById("sidebarClose");
+    const overlay = document.getElementById("sidebarOverlay");
+
+    const themeToggle = document.getElementById("themeToggle");
+
+    // Use these keys consistently throughout the application.
+    const THEME_KEY = "themePreference";
+    const SIDEBAR_KEY = "sidebarState";
+
+    const mobileBreakpoint = 768;
+    const tabletBreakpoint = 992;
+
+    if (!sidebar) {
+        return;
+    }
+
+    // =====================================================
+    // 2. SAFE LOCAL STORAGE HELPERS
+    // =====================================================
+
+    function readPreference(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function writePreference(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (error) {
+            // The UI should still work if storage is blocked.
+        }
+    }
+
+    // =====================================================
+    // 3. THEME TOGGLE
+    // =====================================================
+
+    function applyTheme(theme) {
+        const selectedTheme = theme === "dark" ? "dark" : "light";
+
+        root.setAttribute("data-theme", selectedTheme);
+        writePreference(THEME_KEY, selectedTheme);
+
+        if (themeToggle) {
+            const icon = themeToggle.querySelector("i");
+            const isDark = selectedTheme === "dark";
+
+            themeToggle.setAttribute(
+                "aria-label",
+                isDark ? "Switch to light theme" : "Switch to dark theme"
+            );
+
+            themeToggle.setAttribute(
+                "title",
+                isDark ? "Switch to light theme" : "Switch to dark theme"
+            );
+
+            if (icon) {
+                icon.className = isDark
+                    ? "bi bi-sun-fill"
+                    : "bi bi-moon-stars-fill";
+            }
+        }
+    }
+
+    function initializeTheme() {
+        const savedTheme = readPreference(THEME_KEY);
+
+        applyTheme(savedTheme === "dark" ? "dark" : "light");
+    }
+
+    if (themeToggle) {
+        themeToggle.addEventListener("click", function () {
+            const currentTheme =
+                root.getAttribute("data-theme") || "light";
+
+            applyTheme(currentTheme === "dark" ? "light" : "dark");
+        });
+    }
+
+    // =====================================================
+    // 4. SAVE AND LOAD SIDEBAR STATE
+    // =====================================================
+
+    function saveSidebarState(state) {
+        const selectedState =
+            state === "collapsed" ? "collapsed" : "expanded";
+
+        writePreference(SIDEBAR_KEY, selectedState);
+    }
+
+    function loadSidebarState() {
+        const savedState = readPreference(SIDEBAR_KEY);
+
+        return savedState === "collapsed" ? "collapsed" : "expanded";
+    }
+
+    // =====================================================
+    // 5. APPLY DESKTOP SIDEBAR STATE
+    // =====================================================
+
+    function applyDesktopSidebarState(state) {
+        const isCollapsed = state === "collapsed";
+
+        root.classList.toggle("sidebar-collapsed", isCollapsed);
+        root.classList.toggle("sidebar-expanded", !isCollapsed);
+
+        if (collapseButton) {
+            collapseButton.setAttribute(
+                "aria-expanded",
+                String(!isCollapsed)
+            );
+
+            collapseButton.setAttribute(
+                "aria-label",
+                isCollapsed ? "Expand sidebar" : "Collapse sidebar"
+            );
+
+            collapseButton.setAttribute(
+                "title",
+                isCollapsed ? "Expand sidebar" : "Collapse sidebar"
+            );
+
+            const label = collapseButton.querySelector(".sidebar-label");
+
+            if (label) {
+                label.textContent = isCollapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar";
+            }
+
+            const icon = collapseButton.querySelector("i");
+
+            if (icon) {
+                icon.className = isCollapsed
+                    ? "bi bi-layout-sidebar"
+                    : "bi bi-layout-sidebar-inset";
+            }
+        }
+    }
+
+    // =====================================================
+    // 6. MOBILE DRAWER OPEN/CLOSE
+    // =====================================================
+
+    function isMobile() {
+        return window.innerWidth < mobileBreakpoint;
+    }
+
+    function openMobileSidebar() {
+        if (!isMobile()) {
+            return;
+        }
+
+        root.classList.add("mobile-sidebar-open");
+        body.classList.add("mobile-menu-open");
+
+        if (overlay) {
+            overlay.hidden = false;
+        }
+
+        if (mobileToggleButton) {
+            mobileToggleButton.setAttribute("aria-expanded", "true");
+        }
+
+        if (sidebar) {
+            sidebar.setAttribute("aria-label", "Main navigation");
+        }
+
+        if (mobileCloseButton) {
+            mobileCloseButton.focus();
+        }
+    }
+
+    function closeMobileSidebar(returnFocus = true) {
+        root.classList.remove("mobile-sidebar-open");
+        body.classList.remove("mobile-menu-open");
+
+        if (overlay) {
+            overlay.hidden = true;
+        }
+
+        if (mobileToggleButton) {
+            mobileToggleButton.setAttribute("aria-expanded", "false");
+
+            if (returnFocus && isMobile()) {
+                mobileToggleButton.focus();
+            }
+        }
+    }
+
+    if (mobileToggleButton) {
+        mobileToggleButton.addEventListener("click", function () {
+            const isOpen =
+                root.classList.contains("mobile-sidebar-open");
+
+            if (isOpen) {
+                closeMobileSidebar(false);
+            } else {
+                openMobileSidebar();
+            }
+        });
+    }
+
+    if (mobileCloseButton) {
+        mobileCloseButton.addEventListener("click", function () {
+            closeMobileSidebar(true);
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener("click", function () {
+            closeMobileSidebar(true);
+        });
+    }
+
+    // =====================================================
+    // 7. COLLAPSE / EXPAND DESKTOP OR TABLET SIDEBAR
+    // =====================================================
+
+    if (collapseButton) {
+        collapseButton.addEventListener("click", function () {
+            if (isMobile()) {
+                return;
+            }
+
+            const isCurrentlyCollapsed =
+                root.classList.contains("sidebar-collapsed");
+
+            const nextState = isCurrentlyCollapsed
+                ? "expanded"
+                : "collapsed";
+
+            applyDesktopSidebarState(nextState);
+            saveSidebarState(nextState);
+        });
+    }
+
+    // =====================================================
+    // 8. CLOSE MOBILE DRAWER AFTER NAVIGATION
+    // =====================================================
+
+    sidebar.querySelectorAll("a").forEach(function (link) {
+        link.addEventListener("click", function () {
+            if (isMobile()) {
+                closeMobileSidebar(false);
+            }
+        });
+    });
+
+    // =====================================================
+    // 9. ESCAPE KEY SUPPORT
+    // =====================================================
+
+    document.addEventListener("keydown", function (event) {
+        if (
+            event.key === "Escape" &&
+            root.classList.contains("mobile-sidebar-open")
+        ) {
+            closeMobileSidebar(true);
+        }
+    });
+
+    // =====================================================
+    // 10. RESPONSIVE INITIALIZATION
+    // =====================================================
+
+    function handleViewportChange() {
+        if (isMobile()) {
+            // Mobile has its own drawer behavior.
+            closeMobileSidebar(false);
+            return;
+        }
+
+        // Clean up mobile-only state when leaving mobile width.
+        closeMobileSidebar(false);
+
+        if (window.innerWidth < tabletBreakpoint) {
+            // Tablet starts compact unless explicitly expanded.
+            // The desktop saved preference is left unchanged.
+            applyDesktopSidebarState("collapsed");
+        } else {
+            // Desktop restores the saved user preference.
+            applyDesktopSidebarState(loadSidebarState());
+        }
+    }
+
+    // =====================================================
+    // 11. STARTUP
+    // =====================================================
+
+    initializeTheme();
+
+    // Desktop initial state uses the stored preference.
+    applyDesktopSidebarState(loadSidebarState());
+
+    // Correct the state for the actual viewport size.
+    handleViewportChange();
+
+    window.addEventListener("resize", handleViewportChange);
+
+    // Keep a focus destination available for keyboard users.
+    if (mainContent) {
+        mainContent.setAttribute("tabindex", "-1");
+    }
+});
+```
+
+### How the JavaScript works
+
+* Initialization: `DOMContentLoaded` waits until the HTML is available before the script searches for controls.
+
+* Storage helpers: `readPreference()` and `writePreference()` protect against browser settings that prevent Local Storage access.
+
+* Theme: `applyTheme()` sets the `data-theme` attribute and updates the button icon and accessible label.
+
+* Sidebar persistence: `saveSidebarState()` stores the expanded or collapsed preference. `loadSidebarState()` restores it.
+
+* Desktop and tablet: CSS classes control sidebar width and the main content margin.
+
+* Mobile: `openMobileSidebar()` displays the drawer and overlay. `closeMobileSidebar()` reverses those changes.
+
+* Keyboard support: Escape closes the mobile drawer.
+
+* Responsive initialization: Resizing the browser switches between desktop, tablet, and mobile behavior.
+
+The script does not need jQuery. It uses standard JavaScript DOM APIs.
+
+Accessibility note: This drawer implementation supports basic keyboard controls and focus return, but it is not a complete modal dialog with a focus trap. For an application requiring strict modal-dialog behavior, use Bootstrap's responsive Offcanvas component or implement a tested focus-management pattern. Bootstrap's Offcanvas includes backdrop and accessibility conventions.
+
+### 7\. How the Light/Dark theme integrates with the sidebar
+
+The key design choice is that the theme is controlled by the HTML root:
+
+`<html data-theme="light">` or `<html data-theme="dark">`.
+
+The CSS variables then define the actual colors used by the sidebar, top bar, cards, text, and background.
+
+### Light and dark palette
+
+| UI element             | Light theme | Dark theme |
+| ---------------------- | ----------- | ---------- |
+| Sidebar background     | #FFFFFF     | #172033    |
+| Sidebar text           | #475569     | #CBD5E1    |
+| Main background        | #F5F7FB     | #111827    |
+| Content card           | #FFFFFF     | #1F2937    |
+| Active menu background | #EAF2FF     | #243C65    |
+| Active menu text       | #1D4ED8     | #BFDBFE    |
+| Borders                | #E2E8F0     | #374151    |
+
+### Why CSS variables are useful
+
+Instead of creating separate light-mode and dark-mode styles for every component, CSS variables allow the same component rules to adapt to the selected theme.
+
+For example:
+
+```css
+.app-sidebar {
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+}
+```
+
+When JavaScript changes `data-theme`, the browser recalculates the variables automatically.
+
+### Preserve your existing theme system
+
+If your current application already uses Local Storage for the theme, keep the same key name in `site.js`. In this tutorial, the key is `themePreference`.
+
+If your existing code uses a different key, change `THEME_KEY` and the early theme initialization script in `_Layout.cshtml` to match it. Otherwise, the old toggle and the new toggle might appear to disagree.
+
+The early inline script in the layout reads the saved theme before the stylesheet is painted, which helps reduce the flash of the wrong theme after page refresh.
+
+For applications where users may disable JavaScript or Local Storage, keep a readable default theme and ensure core page content remains usable.
+
+### 8\. Active menu detection: JavaScript vs. Razor vs. ViewContext
+
+Three approaches are possible.
+
+| Method      | Advantages                                          | Disadvantages                                |
+| ----------- | --------------------------------------------------- | -------------------------------------------- |
+| JavaScript  | Useful for client-side navigation and dynamic menus | Requires URL parsing and can be more fragile |
+| Razor       | Simple and explicit in the layout                   | Can become repetitive with many menu items   |
+| ViewContext | Uses the current MVC route data on the server       | Still requires menu-specific logic           |
+
+Recommendation: use Razor with `ViewContext.RouteData`. It is predictable for a conventional MVC application because the server already knows which controller and action are rendering the page.
+
+The layout uses:
+
+```cshtml
+@{
+    var currentController =
+        ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+}
+```
+
+And a menu link uses:
+
+```cshtml
+<a asp-controller="Employee"
+   asp-action="Index"
+   class="sidebar-link @(activeSection == "employee" ? "active" : "")"
+   aria-current="@(activeSection == "employee" ? "page" : null)">
+    <i class="bi bi-people" aria-hidden="true"></i>
+    <span class="sidebar-label">Employees</span>
+</a>
+```
+
+This highlights Employees for any action within `EmployeeController`, including `Details`, `Create`, and `Edit`.
+
+If your application uses Areas, custom route values, or a single controller for several modules, adjust the active-menu logic accordingly. You can compare both controller and action for more precise matching.
+
+### 9\. Save and restore sidebar state with Local Storage
+
+Local Storage stores small key/value pairs in the browser and keeps them across page refreshes and browser sessions, until they are cleared. It is suitable for non-sensitive UI preferences such as themes and sidebar widths.
+
+The core functions are:
+
+```javascript
+function saveSidebarState(state) {
+    const selectedState =
+        state === "collapsed" ? "collapsed" : "expanded";
+
+    writePreference("sidebarState", selectedState);
+}
+
+function loadSidebarState() {
+    const savedState = readPreference("sidebarState");
+
+    return savedState === "collapsed" ? "collapsed" : "expanded";
+}
+```
+
+The flow is:
+
+User collapses sidebar
+
+`saveSidebarState("collapsed")`
+
+Local Storage saves `sidebarState`
+
+On refresh, `loadSidebarState()` restores the preference
+
+### Storage comparison
+
+| Storage type    | Survives refresh? | Survives browser restart?             | Best use                               |
+| --------------- | ----------------- | ------------------------------------- | -------------------------------------- |
+| Local Storage   | Yes               | Usually yes                           | Theme and sidebar preferences          |
+| Session Storage | Yes               | No, generally tied to the tab session | Temporary per-tab UI state             |
+| Database        | Yes               | Yes, across devices when user-linked  | Account-level preferences and settings |
+
+Local Storage is scoped to the site's origin and is not automatically synchronized between browsers or devices. Do not store passwords, authentication tokens, or sensitive business data in it.
+
+One important distinction in this implementation: on mobile, the drawer is temporarily opened or closed, but that state is not saved. The stored preference represents the desktop sidebar's expanded or collapsed state, not whether the mobile drawer is currently open.
+
+### 10\. Complete project structure after implementation
+
+Your application should follow a structure similar to this:
+
+YourMvcProject/
+
+`Controllers/`
+
+`HomeController.cs`
+
+`EmployeeController.cs`
+
+`ProfileController.cs`
+
+`ReportsController.cs`
+
+`SettingsController.cs`
+
+`AccountController.cs`
+
+`Models/`
+
+Application data models and view models
+
+`Views/`
+
+`_ViewImports.cshtml`
+
+`_ViewStart.cshtml`
+
+`Home/`
+
+`Employee/`
+
+`Profile/`, `Reports/`, `Settings/`, `Account/`
+
+`Shared/`
+
+`_Layout.cshtml`
+
+`_ValidationScriptsPartial.cshtml` (if used)
+
+`wwwroot/`
+
+`css/`
+
+`site.css`
+
+`js/`
+
+`site.js`
+
+`lib/`
+
+Bootstrap CSS/JS and any locally installed libraries
+
+`Program.cs`
+
+`appsettings.json`
+
+`YourMvcProject.csproj`
+
+The controller and view files are examples. You do not have to create every controller if your existing application already has equivalent functionality.
+
+### What about SQL Server?
+
+No new SQL Server tables are required for the sidebar itself. The theme and collapse preferences are saved in the browser. Your existing database configuration and business tables remain unchanged.
+
+If you later want a user to have the same sidebar preference on their office computer and home computer, consider saving that preference in a user settings table associated with their authenticated account.
+
+### 11\. Best practices for an enterprise application
+
+### Maintainability and separation of concerns
+
+* Keep shared navigation in `_Layout.cshtml`.
+
+* Keep presentation in `site.css`.
+
+* Keep interaction logic in `site.js`.
+
+* Keep business logic and authorization in controllers, services, and policies.
+
+* Avoid duplicating the sidebar in individual views.
+
+### Scalability and reuse
+
+As the application grows, move the navigation into a partial view such as `Views/Shared/_Sidebar.cshtml`. This is especially helpful when the layout becomes large or you need separate layouts for administration and normal users.
+
+A partial view can also receive a menu view model, so navigation data is not scattered throughout the layout.
+
+### Accessibility
+
+* Use semantic `<nav>`, `<main>`, and `<aside>` elements.
+
+* Provide accessible labels for icon-only controls.
+
+* Preserve visible keyboard focus.
+
+* Ensure active and hover states are distinguishable.
+
+* Test contrast in both themes.
+
+* Avoid relying on color alone to communicate active state.
+
+* Support reduced-motion preferences.
+
+* For a production mobile drawer, consider a proper focus trap and screen-reader announcement behavior.
+
+### Performance
+
+* Use one shared stylesheet and one shared JavaScript file.
+
+* Use `asp-append-version="true"` for cache invalidation.
+
+* Avoid unnecessary third-party libraries.
+
+* Prefer local Bootstrap assets or a controlled CDN version.
+
+* Test the page with browser developer tools for JavaScript and network errors.
+
+### Security
+
+* Enforce access permissions on the server.
+
+* Use ASP.NET Core authentication and authorization rather than hiding unauthorized links alone.
+
+* Use POST for state-changing operations such as logout.
+
+* Do not place confidential information in Local Storage.
+
+* Avoid building navigation destinations from untrusted strings.
+
+* Use HTTPS in IIS deployments.
+
+### IIS hosting considerations
+
+The sidebar is a client-side UI feature and does not require additional IIS modules. When deploying:
+
+* Publish the application using the .NET 8 deployment settings appropriate for your environment.
+
+* Ensure the server has the required .NET hosting components for your deployment model.
+
+* Confirm that `wwwroot/css/site.css` and `wwwroot/js/site.js` are included in the published output.
+
+* Verify that the Bootstrap assets are present at the paths referenced in the layout.
+
+* Test the application using its actual IIS URL, not only Visual Studio.
+
+* Clear or bypass browser caches if an older stylesheet or JavaScript file continues to load.
+
+The layout and styles do not require a change to your SQL Server connection string.
+
+### 12\. Future enhancements
+
+The implementation above is a foundation. These enhancements can be introduced incrementally.
+
+Role-based navigation
+
+Display menu items according to application roles, such as Employee, Manager, and Administrator. Still enforce `[Authorize]` or policy checks on protected actions.
+
+SQL Server-driven menus
+
+Store menu definitions, display order, and role permissions in database tables. Retrieve them through a service or view component rather than querying SQL directly in the layout.
+
+Multi-level navigation
+
+Add expandable groups for modules such as HR, Procurement, Finance, and Administration. Ensure nested links remain keyboard accessible.
+
+User profile card and notifications
+
+Display the signed-in user's name, department, profile picture, and notification counts using data from your identity system or application services.
+
+User-specific preferences
+
+Keep Local Storage for anonymous or device-specific UI preferences, or persist preferences in SQL Server when they should follow the user's authenticated account across devices.
+
+For Microsoft Identity integration, the sign-in and sign-out actions should use the application's configured authentication scheme. If your project uses ASP.NET Core Identity, integrate the existing `SignInManager` and authentication setup instead of inventing a separate logout mechanism.
+
+### 13\. Final testing checklist
+
+Before deploying, use this checklist to validate the integration.
+
+### Implementation verification
+
+0/20 complete
+
+Navigation
+
+Dashboard link opens Home/Index
+
+Employees link opens Employee/Index
+
+Profile, Reports, and Settings destinations exist
+
+Current controller menu is highlighted
+
+Logout submits a POST to the real sign-out action
+
+Responsive layout
+
+Desktop sidebar stays visible while scrolling
+
+Collapse button switches between full and icon-only modes
+
+Tablet sidebar can be expanded and collapsed
+
+Mobile sidebar opens with the hamburger button
+
+Overlay, close button, and Escape dismiss the mobile drawer
+
+Preferences and themes
+
+Light theme is the default when no preference exists
+
+Dark theme applies to sidebar and content
+
+Theme persists after refresh
+
+Collapsed state persists after refresh on desktop
+
+Mobile drawer state does not overwrite desktop preference
+
+Production readiness
+
+Bootstrap and Bootstrap Icons load successfully
+
+No JavaScript errors appear in browser developer tools
+
+Keyboard focus remains visible
+
+Protected pages enforce server-side authorization
+
+Published application works at its IIS URL
+
+Reset checklist
+
+### 14\. Recommended implementation order
+
+Since you're extending an existing application, I recommend implementing the changes in this order rather than replacing everything at once.
+
+* Back up your existing `_Layout.cshtml`, `site.css`, and `site.js`.
+
+* Update `_Layout.cshtml` with the sidebar and main content structure.
+
+* Merge the CSS into `wwwroot/css/site.css` and confirm the desktop layout works.
+
+* Merge the JavaScript into `wwwroot/js/site.js` and test the theme toggle.
+
+* Test collapse/expand and refresh persistence on desktop.
+
+* Test the hamburger menu, overlay, and Escape key on mobile.
+
+* Connect each menu item to its real controller and action.
+
+* Test server-side authorization and the real logout action before publishing to IIS.
+
+### Official references
+
+* [ASP.NET Core MVC layouts](https://learn.microsoft.com/en-us/aspnet/core/mvc/views/layout?view=aspnetcore-8.0&utm_source=chatgpt.com) — shared layouts, `RenderBody`, and view sections.
+
+* [Bootstrap 5.3 Offcanvas](https://getbootstrap.com/docs/5.3/components/offcanvas/?utm_source=chatgpt.com) — responsive drawers, overlays, and accessibility guidance.
+
+* [Bootstrap Icons](https://icons.getbootstrap.com/?utm_source=chatgpt.com) — available navigation icons.
+
+Final recommendation: Keep your existing theme system and business functionality intact, and treat the sidebar as a shared presentation component. This approach gives you a maintainable foundation for a professional ASP.NET Core MVC application without introducing unnecessary database changes or JavaScript dependencies.
+
+The code above is a complete implementation template, but it has not been run against your specific project. Verify your existing Bootstrap asset paths, controller names, authentication setup, and any CSS or JavaScript already present before deploying it to IIS.
+
+
+
+******
+
+
 In my existing ASP.NET Core Web App (Model-View-Controller) using .NET 8.0 (Long Term Support), SQL Server, Bootstrap 5, IIS Hosting, and a previously implemented Light Mode / Dark Mode Theme Toggle using Local Storage, please add a modern, responsive, and enterprise-ready Side Navigation Bar (Sidebar).
 
 Create a complete beginner-friendly step-by-step guide with detailed explanations for every step. Assume I am still learning ASP.NET Core MVC, so explain not only WHAT to do, but also WHY it is needed, HOW it works, and WHERE each file should be placed.
