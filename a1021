@@ -1,3 +1,73 @@
+Please update my existing ASP.NET Core MVC .NET 8 Light Mode and Dark Mode Theme Toggle implementation.
+
+The theme toggle already works using CSS, JavaScript, Bootstrap 5, and Local Storage. Do not recreate the project. Modify only the required code in:
+
+- Views/Shared/_Layout.cshtml
+- wwwroot/js/theme.js
+- wwwroot/css/theme.css
+- libman.json, if required
+
+Apply these improvements:
+
+1. Remove the visible "Dark Mode" and "Light Mode" text from the theme toggle button.
+
+2. Display only one Bootstrap Icon:
+   - Moon icon in Light Mode to indicate switching to Dark Mode
+   - Sun icon in Dark Mode to indicate switching to Light Mode
+
+3. Use these classes:
+   - bi bi-moon-fill
+   - bi bi-sun-fill
+
+4. Do not use inline SVG, CDN, or Font Awesome.
+
+5. Install Bootstrap Icons locally using Visual Studio 2022 and LibMan. Store the library in:
+
+   wwwroot/lib/bootstrap-icons/
+
+6. Reference the local Bootstrap Icons CSS in _Layout.cshtml and ensure the required font files are included so the icons work without internet access.
+
+7. Add dynamic accessibility attributes:
+   - Light Mode: aria-label and title should be "Switch to Dark Mode"
+   - Dark Mode: aria-label and title should be "Switch to Light Mode"
+
+8. Use aria-hidden="true" on the icon because the button already contains an accessible label.
+
+9. After a mouse or touch click, prevent the button from remaining visually focused by using blur(). However, do not remove focus when the button is used through the keyboard.
+
+10. Use :focus-visible to preserve a clear keyboard focus indicator. Do not use outline: none without an accessible replacement.
+
+11. Prevent the wrong theme or icon from flashing during page load.
+
+12. Continue using one Local Storage key named "theme".
+
+13. Make the icon-only button compact, centered, accessible, and suitable for a Bootstrap navbar.
+
+14. Ensure the JavaScript:
+    - Validates saved values
+    - Applies the saved theme
+    - Toggles the theme
+    - Saves the theme
+    - Updates the icon
+    - Updates aria-label and title
+    - Avoids duplicate event listeners
+    - Handles missing elements safely
+    - Preserves keyboard accessibility
+
+Provide:
+
+- Complete updated code for each affected file
+- Exact placement instructions
+- Explanation of every important line
+- Visual Studio 2022 LibMan installation steps
+- Testing instructions for mouse, touch, keyboard, Local Storage, refresh, browser restart, and offline icon loading
+- Common errors and fixes
+
+Use ASP.NET Core MVC, .NET 8 LTS, Bootstrap 5, JavaScript, CSS, Local Storage, and offline Bootstrap Icons only. Do not use a database, Entity Framework, ASP.NET Identity, CDN links, Font Awesome, or inline SVG.
+
+*******
+
+
 ### ASP.NET Core MVC .NET 8: Complete Light Mode and Dark Mode Tutorial
 
 Phase 1 — Local Storage Approach · Visual Studio 2022 · Bootstrap 5 · JavaScript · CSS
