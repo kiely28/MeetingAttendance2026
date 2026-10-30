@@ -1,3 +1,1404 @@
+Worked for 34s
+
+### Update: Icon-Only Light/Dark Mode Toggle with Local Bootstrap Icons
+
+We will modify your existing ASP.NET Core MVC .NET 8 application without recreating the project or changing its existing MVC structure.
+
+The updated implementation will use locally installed Bootstrap Icons, JavaScript, CSS, and browser Local Storage.
+
+### 1\. Expected final appearance
+
+### My Application
+
+Light Mode
+
+Switch to Dark Mode
+
+### My Application
+
+Dark Mode
+
+Switch to Light Mode
+
+Illustrative navbar appearance. The actual button will contain only the Bootstrap moon or sun icon, without visible text.
+
+### Expected behavior
+
+| Current theme | Visible icon    | Accessible label     | Saved value |
+| ------------- | --------------- | -------------------- | ----------- |
+| Light Mode    | bi bi-moon-fill | Switch to Dark Mode  | light       |
+| Dark Mode     | bi bi-sun-fill  | Switch to Light Mode | dark        |
+
+The implementation will also:
+
+* Remove visible button text.
+
+* Keep the button compact and centered.
+
+* Use `blur()` only for mouse and touch interactions, not keyboard interactions.
+
+* Preserve a visible keyboard focus indicator.
+
+* Load the saved theme before the page's stylesheets to minimize theme flashing.
+
+* Avoid duplicate click event listeners.
+
+* Work offline after Bootstrap Icons has been installed locally.
+
+### 2\. Files we will modify
+
+| File                        | Modification                                                            |
+| --------------------------- | ----------------------------------------------------------------------- |
+| Views/Shared/_Layout.cshtml | Local Bootstrap Icons CSS, early theme initialization, icon-only button |
+| wwwroot/js/theme.js         | Theme loading, switching, storage, icons, accessibility, focus handling |
+| wwwroot/css/theme.css       | Compact button, hover, focus, and theme styles                          |
+| libman.json                 | Add Bootstrap Icons library                                             |
+
+We will not modify `Program.cs`, controllers, models, database configuration, or existing MVC pages.
+
+### 3\. Install Bootstrap Icons locally using LibMan
+
+Bootstrap Icons is a separate library from Bootstrap CSS. Installing Bootstrap itself does not automatically install Bootstrap Icons.
+
+We will use LibMan (Library Manager) in Visual Studio 2022 to download the icon CSS and font files into your project.
+
+### Step 1 — Open LibMan
+
+In Visual Studio 2022:
+
+* Open your existing ASP.NET Core MVC project.
+
+* In Solution Explorer, right-click the project.
+
+* Select Add → Client-Side Library.
+
+![Updating Your JavaScript Libraries in ASP.NET Core 2.2 | by Scott Kuhl | Medium](https://images.openai.com/static-rsc-4/Aq3g1jFs2R885mVQUFxoNORfhB2yVFVwu9OR0_WjSBgtZ1hIcu5aTr3xQuuXWkrNOFZHH1X7_JBRg6giUOqgCpjuZ4O8FQFT-lsBUujLyEZyJQNy6XoMCF6-r-nRGn6D5u_2GirIprQvh-yYbQuOFFbRxbtWpV7KLGitGM1AiNStRUJTTVXqf4ldB4zxGqSd?purpose=fullsize)
+
+### Step 2 — Configure the library
+
+Use these settings:
+
+| Setting         | Value                        |
+| --------------- | ---------------------------- |
+| Provider        | cdnjs                        |
+| Library         | bootstrap-icons@1.13.1       |
+| Target Location | wwwroot/lib/bootstrap-icons/ |
+
+The version is pinned deliberately so that future library updates do not unexpectedly change your application.
+
+Click Install.
+
+If your Visual Studio installation does not offer the `cdnjs` provider, you can use the `jsdelivr` provider and select the same Bootstrap Icons version.
+
+### Step 3 — Verify the downloaded files
+
+After installation, check that your project contains:
+
+```text
+wwwroot/
+└── lib/
+    └── bootstrap-icons/
+        ├── font/
+        │   ├── bootstrap-icons.css
+        │   ├── bootstrap-icons.min.css
+        │   └── fonts/
+        │       ├── bootstrap-icons.woff
+        │       └── bootstrap-icons.woff2
+        └── ...
+```
+
+The exact folder structure depends on the provider and its package distribution. The important requirement is that the CSS file and both referenced font files are downloaded.
+
+Important: Do not copy only `bootstrap-icons.min.css`. Bootstrap Icons uses font files to render its icons. If the CSS references missing font files, the icons will not appear.
+
+### Step 4 — Verify `libman.json`
+
+Visual Studio should create or update `libman.json` in your project root.
+
+For a minimal installation containing only the required CSS and font files, use:
+
+```json
+
+{
+  "version": "1.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "bootstrap-icons@1.13.1",
+      "destination": "wwwroot/lib/bootstrap-icons/",
+      "files": [
+        "font/bootstrap-icons.min.css",
+        "font/fonts/bootstrap-icons.woff",
+        "font/fonts/bootstrap-icons.woff2"
+      ]
+    }
+  ]
+}
+```
+
+This configuration downloads only the required files instead of all 2,084 library files. The package's CSS and font files are available in the pinned cdnjs distribution. cdnjs +1
+
+Important: If you already have other libraries in `libman.json`, do not delete them. Add the Bootstrap Icons entry to the existing `libraries` array.
+
+### Step 5 — Restore the library
+
+After saving `libman.json`:
+
+* Right-click `libman.json`.
+
+* Select Restore Client-Side Libraries.
+
+* Wait for the restore operation.
+
+* Expand `wwwroot/lib/bootstrap-icons/`.
+
+* Confirm the CSS and both font files exist.
+
+If the restore fails, open Visual Studio's Output window and select the LibMan output category to see the error.
+
+### 4\. Update `Views/Shared/_Layout.cshtml`
+
+We need three changes:
+
+* Reference the locally installed Bootstrap Icons stylesheet.
+
+* Initialize the saved theme in the `<head>` before the stylesheets load.
+
+* Replace the old text-and-icon button with an icon-only button.
+
+### Step 1 — Add the Bootstrap Icons stylesheet
+
+Find the `<head>` section.
+
+Place this reference after your Bootstrap CSS and before the closing `</head>`:
+
+```html
+<link rel="stylesheet"
+      href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css"
+      asp-append-version="true" />
+```
+
+The location is important because the CSS file is inside:
+
+```text
+wwwroot/lib/bootstrap-icons/font/
+```
+
+The font references inside the Bootstrap Icons stylesheet are relative to its own location. Therefore, keeping the `fonts` folder alongside the CSS file's expected relative path is essential.
+
+### Step 2 — Add the early theme initialization
+
+Place this script immediately after your `<meta>` tags and before your CSS references.
+
+```html
+<script>
+    (() => {
+        const root = document.documentElement;
+
+        try {
+            const savedTheme = localStorage.getItem("theme");
+
+            const isValidTheme =
+                savedTheme === "light" ||
+                savedTheme === "dark";
+
+            const systemPrefersDark =
+                window.matchMedia &&
+                window.matchMedia(
+                    "(prefers-color-scheme: dark)"
+                ).matches;
+
+            const theme = isValidTheme
+                ? savedTheme
+                : (systemPrefersDark ? "dark" : "light");
+
+            root.setAttribute("data-theme", theme);
+            root.setAttribute("data-bs-theme", theme);
+
+        } catch (error) {
+            root.setAttribute("data-theme", "light");
+            root.setAttribute("data-bs-theme", "light");
+        }
+    })();
+</script>
+```
+
+Why do we put this here?
+
+The browser processes the HTML from top to bottom.
+
+If the saved theme is applied only by JavaScript at the bottom of the page, the browser might initially display Light Mode before switching to Dark Mode.
+
+By initializing the theme before the stylesheets, the browser can use the correct CSS variables during the initial rendering.
+
+### Step 3 — Replace the existing theme button
+
+Find your existing theme toggle button in the navbar.
+
+Remove the old button, including its visible text and any inline SVG.
+
+Replace it with:
+
+```html
+
+<button type="button"
+        id="themeToggle"
+        class="btn btn-outline-secondary theme-toggle-btn"
+        aria-label="Switch to Dark Mode"
+        title="Switch to Dark Mode"
+        aria-pressed="false">
+
+    <i id="themeIcon"
+       class="bi bi-moon-fill"
+       aria-hidden="true"></i>
+
+</button>
+```
+
+Place this button inside your existing navbar, preferably near the right side.
+
+For example:
+
+```html
+<div class="d-flex align-items-center ms-auto">
+    <!-- Theme toggle button goes here -->
+</div>
+```
+
+### Understanding the button
+
+| Attribute          | Purpose                                                      |
+| ------------------ | ------------------------------------------------------------ |
+| type="button"      | Prevents accidental form submission                          |
+| id="themeToggle"   | Allows JavaScript to identify the button                     |
+| theme-toggle-btn   | Applies our custom compact styling                           |
+| aria-label         | Provides an accessible description                           |
+| title              | Displays a tooltip on hover                                  |
+| aria-pressed       | Announces the current toggle state                           |
+| id="themeIcon"     | Allows JavaScript to update the icon                         |
+| aria-hidden="true" | Prevents screen readers from redundantly announcing the icon |
+
+The icon class:
+
+```html
+class="bi bi-moon-fill"
+```
+
+displays the filled moon.
+
+For Dark Mode, JavaScript will change it to:
+
+```html
+class="bi bi-sun-fill"
+```
+
+No inline SVG, CDN, or Font Awesome is needed.
+
+### 5\. Update `wwwroot/js/theme.js`
+
+Now we will replace your existing theme JavaScript with a cleaner implementation.
+
+This version handles all the requirements, including mouse/touch blur and keyboard accessibility.
+
+### Complete updated JavaScript
+
+Open `wwwroot/js/theme.js`, remove the old implementation, and paste:
+
+```javascript
+
+"use strict";
+
+(() => {
+
+    // =========================================
+    // 1. CONFIGURATION
+    // =========================================
+
+    const STORAGE_KEY = "theme";
+
+    const root = document.documentElement;
+
+    // =========================================
+    // 2. VALIDATE THEME VALUE
+    // =========================================
+
+    function isValidTheme(theme) {
+
+        return theme === "light" || theme === "dark";
+
+    }
+
+    // =========================================
+    // 3. GET SAVED THEME
+    // =========================================
+
+    function getSavedTheme() {
+
+        try {
+
+            const savedTheme =
+                localStorage.getItem(STORAGE_KEY);
+
+            return isValidTheme(savedTheme)
+                ? savedTheme
+                : null;
+
+        } catch (error) {
+
+            console.warn(
+                "Unable to read theme from Local Storage.",
+                error
+            );
+
+            return null;
+
+        }
+
+    }
+
+    // =========================================
+    // 4. APPLY THEME
+    // =========================================
+
+    function applyTheme(theme) {
+
+        if (!isValidTheme(theme)) {
+
+            theme = "light";
+
+        }
+
+        root.setAttribute("data-theme", theme);
+
+        // Synchronize Bootstrap 5.3 color mode.
+        root.setAttribute("data-bs-theme", theme);
+
+        return theme;
+
+    }
+
+    // =========================================
+    // 5. SAVE THEME
+    // =========================================
+
+    function saveTheme(theme) {
+
+        try {
+
+            localStorage.setItem(STORAGE_KEY, theme);
+
+            return true;
+
+        } catch (error) {
+
+            console.warn(
+                "Unable to save theme to Local Storage.",
+                error
+            );
+
+            return false;
+
+        }
+
+    }
+
+    // =========================================
+    // 6. UPDATE ICON AND ACCESSIBILITY
+    // =========================================
+
+    function updateThemeIcon(theme, button, icon) {
+
+        if (!button || !icon) {
+
+            return;
+
+        }
+
+        const isDark = theme === "dark";
+
+        // Light Mode = Moon
+        // Dark Mode = Sun
+
+        icon.classList.toggle("bi-moon-fill", !isDark);
+
+        icon.classList.toggle("bi-sun-fill", isDark);
+
+        // Update accessible button label.
+
+        const actionText = isDark
+            ? "Switch to Light Mode"
+            : "Switch to Dark Mode";
+
+        button.setAttribute("aria-label", actionText);
+
+        button.setAttribute("title", actionText);
+
+        // Announce current toggle state.
+
+        button.setAttribute(
+            "aria-pressed",
+            String(isDark)
+        );
+
+    }
+
+    // =========================================
+    // 7. INITIALIZE THEME
+    // =========================================
+
+    function initializeTheme() {
+
+        const button =
+            document.getElementById("themeToggle");
+
+        const icon =
+            document.getElementById("themeIcon");
+
+        // Stop safely if the button or icon is missing.
+
+        if (!button || !icon) {
+
+            return;
+
+        }
+
+        // Prevent duplicate event listeners.
+
+        if (button.dataset.themeInitialized === "true") {
+
+            return;
+
+        }
+
+        button.dataset.themeInitialized = "true";
+
+        // Read the saved preference.
+
+        const savedTheme = getSavedTheme();
+
+        // Use the theme already applied by the head script
+        // if there is no saved preference.
+
+        const currentTheme =
+            root.getAttribute("data-theme");
+
+        const initialTheme = savedTheme ||
+            (isValidTheme(currentTheme)
+                ? currentTheme
+                : "light");
+
+        // Apply the initial theme.
+
+        const theme = applyTheme(initialTheme);
+
+        // Update the icon and accessible attributes.
+
+        updateThemeIcon(theme, button, icon);
+
+        // =========================================
+        // 8. THEME TOGGLE EVENT
+        // =========================================
+
+        button.addEventListener("click", function (event) {
+
+            // Read current theme.
+
+            const current =
+                root.getAttribute("data-theme");
+
+            // Determine opposite theme.
+
+            const newTheme = current === "dark"
+                ? "light"
+                : "dark";
+
+            // Apply the new theme.
+
+            const appliedTheme = applyTheme(newTheme);
+
+            // Save the selection.
+
+            saveTheme(appliedTheme);
+
+            // Update icon and accessibility attributes.
+
+            updateThemeIcon(
+                appliedTheme,
+                button,
+                icon
+            );
+
+            // Remove visual focus after mouse or touch
+            // activation, but preserve keyboard focus.
+
+            if (event.detail > 0) {
+
+                button.blur();
+
+            }
+
+        });
+
+    }
+
+    // =========================================
+    // 9. DOM INITIALIZATION
+    // =========================================
+
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeTheme,
+            { once: true }
+        );
+
+    } else {
+
+        initializeTheme();
+
+    }
+
+})();
+```
+
+### Explanation of the important JavaScript sections
+
+1\. Theme validation
+
+```javascript
+function isValidTheme(theme) {
+    return theme === "light" || theme === "dark";
+}
+```
+
+This prevents unexpected values from being applied.
+
+For example, if someone manually changes Local Storage to:
+
+```text
+theme = blue
+```
+
+the application will not accept that value as a valid theme.
+
+2\. Retrieve the saved theme
+
+```javascript
+localStorage.getItem(STORAGE_KEY);
+```
+
+The application reads the same `theme` key used by your previous implementation. Existing valid preferences are therefore retained.
+
+3\. Apply the theme
+
+```javascript
+root.setAttribute("data-theme", theme);
+root.setAttribute("data-bs-theme", theme);
+```
+
+The first attribute controls your custom CSS. The second synchronizes Bootstrap 5.3 color modes.
+
+4\. Update the icon
+
+```javascript
+icon.classList.toggle("bi-moon-fill", !isDark);
+icon.classList.toggle("bi-sun-fill", isDark);
+```
+
+This changes the Bootstrap Icon class dynamically.
+
+When Light Mode is active:
+
+```html
+<i class="bi bi-moon-fill"></i>
+```
+
+When Dark Mode is active:
+
+```html
+<i class="bi bi-sun-fill"></i>
+```
+
+Notice that we do not need two separate icon elements. One element is sufficient.
+
+5\. Update accessibility attributes
+
+```javascript
+button.setAttribute("aria-label", actionText);
+button.setAttribute("title", actionText);
+```
+
+The user will see only the icon, but screen readers and other assistive technologies can identify what the button does.
+
+6\. Prevent duplicate event listeners
+
+```javascript
+if (button.dataset.themeInitialized === "true") {
+    return;
+}
+```
+
+This ensures that the same button is not initialized repeatedly.
+
+7\. Preserve keyboard accessibility
+
+The important part is:
+
+```javascript
+if (event.detail > 0) {
+    button.blur();
+}
+```
+
+Here is how it works:
+
+| Interaction | event.detail           | Result                    |
+| ----------- | ---------------------- | ------------------------- |
+| Mouse click | Usually greater than 0 | Button loses visual focus |
+| Touch tap   | Usually greater than 0 | Button loses visual focus |
+| Enter key   | 0                      | Keyboard focus remains    |
+| Space key   | 0                      | Keyboard focus remains    |
+
+`blur()` removes focus from the button. We only call it for pointer-generated clicks, not keyboard-generated clicks.
+
+This distinction is important because keyboard users need to know which element currently has focus.
+
+8\. Safe initialization
+
+```javascript
+if (document.readyState === "loading")
+```
+
+If the HTML is still loading, JavaScript waits for `DOMContentLoaded`. Otherwise, it initializes immediately.
+
+This avoids errors caused by trying to find the button before the browser has parsed it.
+
+### 6\. Update `wwwroot/css/theme.css`
+
+We will add a compact icon-only button and improve its focus behavior.
+
+You do not need to replace your existing theme variables, card styles, table styles, or other CSS.
+
+Add this section at the bottom of your existing `theme.css`.
+
+```css
+
+/* =========================================
+   THEME TOGGLE BUTTON
+   ========================================= */
+
+.theme-toggle-btn {
+
+    width: 38px;
+    height: 38px;
+
+    padding: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    font-size: 1.05rem;
+
+    line-height: 1;
+
+    flex-shrink: 0;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s ease;
+
+}
+
+/* Icon alignment */
+
+.theme-toggle-btn i {
+
+    display: inline-block;
+
+    line-height: 1;
+
+}
+
+/* Mouse hover */
+
+.theme-toggle-btn:hover {
+
+    transform: translateY(-1px);
+
+}
+
+/* Active press */
+
+.theme-toggle-btn:active {
+
+    transform: scale(0.96);
+
+}
+
+/* Keyboard focus indicator */
+
+.theme-toggle-btn:focus-visible {
+
+    outline: 3px solid var(--app-primary);
+
+    outline-offset: 3px;
+
+    box-shadow: 0 0 0 2px var(--app-background);
+
+}
+
+/* Do not show a custom outline for
+   ordinary pointer focus. */
+
+.theme-toggle-btn:focus:not(:focus-visible) {
+
+    outline: none;
+
+    box-shadow: none;
+
+}
+
+/* Respect reduced-motion settings */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .theme-toggle-btn {
+
+        transition: none;
+
+    }
+
+}
+```
+
+### Explanation of the CSS
+
+| CSS                        | Purpose                                        |
+| -------------------------- | ---------------------------------------------- |
+| width: 38px                | Makes the button compact                       |
+| height: 38px               | Keeps the button square                        |
+| padding: 0                 | Removes unnecessary internal spacing           |
+| inline-flex                | Allows the button to fit naturally in a navbar |
+| align-items: center        | Centers the icon vertically                    |
+| justify-content: center    | Centers the icon horizontally                  |
+| border-radius: 50%         | Makes the button circular                      |
+| flex-shrink: 0             | Prevents the button from becoming too small    |
+| :hover                     | Adds a subtle hover effect                     |
+| :active                    | Adds a small press animation                   |
+| :focus-visible             | Displays a visible keyboard focus indicator    |
+| :focus:not(:focus-visible) | Avoids unnecessary pointer-focus styling       |
+
+### Important accessibility note
+
+We are not removing the keyboard focus indicator.
+
+The following rule is intentional:
+
+```css
+.theme-toggle-btn:focus-visible {
+    outline: 3px solid var(--app-primary);
+    outline-offset: 3px;
+}
+```
+
+It makes the button visibly identifiable when someone navigates using Tab, Enter, or Space.
+
+The pointer-focus rule only removes the ordinary outline when the browser does not consider the focus visible.
+
+### 7\. Complete updated `_Layout.cshtml`
+
+If you want a complete reference layout, use the following example. It preserves the standard MVC navigation, Home and Privacy links, Bootstrap bundle, and Razor sections.
+
+If your existing layout already contains additional navigation links, user menus, or custom components, keep those elements and apply the same changes rather than replacing your entire layout.
+
+```html
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-bs-theme="light">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - ThemeToggleMvc</title>
+
+    <!-- =====================================
+         EARLY THEME INITIALIZATION
+         ===================================== -->
+
+    <script>
+        (() => {
+
+            const root = document.documentElement;
+
+            try {
+
+                const savedTheme =
+                    localStorage.getItem("theme");
+
+                const validTheme =
+                    savedTheme === "light" ||
+                    savedTheme === "dark";
+
+                const prefersDark =
+                    window.matchMedia &&
+                    window.matchMedia(
+                        "(prefers-color-scheme: dark)"
+                    ).matches;
+
+                const theme = validTheme
+                    ? savedTheme
+                    : (prefersDark ? "dark" : "light");
+
+                root.setAttribute("data-theme", theme);
+
+                root.setAttribute("data-bs-theme", theme);
+
+            } catch (error) {
+
+                root.setAttribute("data-theme", "light");
+
+                root.setAttribute("data-bs-theme", "light");
+
+            }
+
+        })();
+    </script>
+
+    <!-- =====================================
+         CSS FILES
+         ===================================== -->
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css"
+          asp-append-version="true" />
+
+    <!-- Bootstrap Icons - LOCAL -->
+    <link rel="stylesheet"
+          href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css"
+          asp-append-version="true" />
+
+    <!-- Existing Application CSS -->
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <!-- Custom Theme CSS -->
+    <link rel="stylesheet"
+          href="~/css/theme.css"
+          asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
+
+</head>
+
+<body>
+
+    <!-- =====================================
+         NAVIGATION BAR
+         ===================================== -->
+
+    <header>
+
+        <nav class="navbar navbar-expand-sm app-navbar">
+
+            <div class="container-fluid">
+
+                <!-- Application Brand -->
+
+                <a class="navbar-brand fw-semibold"
+                   asp-area=""
+                   asp-controller="Home"
+                   asp-action="Index">
+
+                    ThemeToggleMvc
+
+                </a>
+
+                <!-- Mobile Navigation Button -->
+
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation">
+
+                    <span class="navbar-toggler-icon"></span>
+
+                </button>
+
+                <!-- Navigation Content -->
+
+                <div class="collapse navbar-collapse"
+                     id="mainNavbar">
+
+                    <ul class="navbar-nav me-auto mb-2 mb-sm-0">
+
+                        <li class="nav-item">
+
+                            <a class="nav-link"
+                               asp-area=""
+                               asp-controller="Home"
+                               asp-action="Index">
+
+                                Home
+
+                            </a>
+
+                        </li>
+
+                        <li class="nav-item">
+
+                            <a class="nav-link"
+                               asp-area=""
+                               asp-controller="Home"
+                               asp-action="Privacy">
+
+                                Privacy
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                    <!-- =================================
+                         ICON-ONLY THEME TOGGLE
+                         ================================= -->
+
+                    <div class="d-flex align-items-center ms-auto">
+
+                        <button type="button"
+                                id="themeToggle"
+                                class="btn btn-outline-secondary theme-toggle-btn"
+                                aria-label="Switch to Dark Mode"
+                                title="Switch to Dark Mode"
+                                aria-pressed="false">
+
+                            <i id="themeIcon"
+                               class="bi bi-moon-fill"
+                               aria-hidden="true"></i>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </nav>
+
+    </header>
+
+    <!-- =====================================
+         MAIN PAGE CONTENT
+         ===================================== -->
+
+    <main role="main" class="pb-3">
+
+        @RenderBody()
+
+    </main>
+
+    <!-- =====================================
+         FOOTER
+         ===================================== -->
+
+    <footer class="container py-3 mt-4 border-top">
+
+        <span class="text-muted">
+
+            &copy; @DateTime.Now.Year - ThemeToggleMvc
+
+        </span>
+
+    </footer>
+
+    <!-- =====================================
+         JAVASCRIPT FILES
+         ===================================== -->
+
+    <!-- Bootstrap JavaScript -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"
+            asp-append-version="true"></script>
+
+    <!-- Theme JavaScript -->
+    <script src="~/js/theme.js"
+            asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+
+</html>
+```
+
+### Important placement instructions
+
+| Code                       | Exact location                             |
+| -------------------------- | ------------------------------------------ |
+| Early theme initialization | Inside <head>, immediately after meta tags |
+| Bootstrap Icons CSS        | Inside <head>, before </head>              |
+| Theme CSS                  | After site.css                             |
+| Icon-only button           | Inside the existing navbar                 |
+| Bootstrap JS               | Before </body>                             |
+| theme.js                   | After Bootstrap JS, before </body>         |
+
+Why does the early script and `theme.js` both read the theme?
+
+They have different responsibilities:
+
+* The early script applies the saved preference before the browser renders the page.
+
+* `theme.js` initializes the button, attaches the click event, and updates its accessibility attributes.
+
+This separation prevents unnecessary visual flashing while keeping the JavaScript organized.
+
+### 8\. Final file structure
+
+After the changes, your relevant project structure should look like this:
+
+```text
+ThemeToggleMvc/
+│
+├── Controllers/
+│
+├── Models/
+│
+├── Views/
+│   └── Shared/
+│       └── _Layout.cshtml
+│
+├── wwwroot/
+│   │
+│   ├── css/
+│   │   ├── site.css
+│   │   └── theme.css
+│   │
+│   ├── js/
+│   │   ├── site.js
+│   │   └── theme.js
+│   │
+│   └── lib/
+│       ├── bootstrap/
+│       │
+│       └── bootstrap-icons/
+│           └── font/
+│               ├── bootstrap-icons.min.css
+│               └── fonts/
+│                   ├── bootstrap-icons.woff
+│                   └── bootstrap-icons.woff2
+│
+├── libman.json
+│
+└── Program.cs
+```
+
+### 9\. Testing instructions
+
+We should test not only whether the icon changes, but also whether the application behaves correctly across different input methods.
+
+### Test 1 — Initial page load
+
+* Open your application.
+
+* Open Developer Tools.
+
+* Go to Application → Local Storage.
+
+* Remove the existing `theme` key.
+
+* Refresh the page.
+
+Expected result:
+
+* If the operating system prefers Light Mode, the moon icon appears.
+
+* If the operating system prefers Dark Mode, the sun icon appears.
+
+* No visible button text appears.
+
+* The theme is applied before the main page styles render.
+
+### Test 2 — Mouse interaction
+
+* Click the moon icon.
+
+* Verify that Dark Mode is applied.
+
+* Verify that the moon changes into the sun.
+
+* Move your mouse away from the button.
+
+Expected result:
+
+* Dark Mode is active.
+
+* The button label is `Switch to Light Mode`.
+
+* The title is `Switch to Light Mode`.
+
+* The button does not remain visually focused after the click.
+
+Repeat the test using the sun icon.
+
+### Test 3 — Touch interaction
+
+If using a touchscreen laptop or mobile browser:
+
+* Open the application.
+
+* Tap the moon icon.
+
+* Verify that the theme changes.
+
+* Check that the button does not remain visually focused.
+
+The `event.detail > 0` check handles normal pointer-generated mouse and touch clicks. Some assistive technologies generate clicks differently, so those should also be tested separately.
+
+### Test 4 — Keyboard interaction
+
+This is an important accessibility test.
+
+* Refresh the application.
+
+* Press `Tab` until the theme button receives focus.
+
+* Check whether a visible focus outline appears.
+
+* Press `Enter`.
+
+* Check whether the theme changes.
+
+* Verify that keyboard focus remains on the theme button.
+
+* Press `Space` to toggle again.
+
+Keyboard focus should remain on the button after both Enter and Space activation.
+
+### Test 5 — Local Storage
+
+Open the browser Console.
+
+Execute:
+
+```javascript
+localStorage.getItem("theme");
+```
+
+Expected results:
+
+| Selected theme | Console result |
+| -------------- | -------------- |
+| Light Mode     | "light"        |
+| Dark Mode      | "dark"         |
+
+Check the HTML attribute:
+
+```javascript
+document.documentElement.getAttribute("data-theme");
+```
+
+Check Bootstrap's color-mode attribute:
+
+```javascript
+document.documentElement.getAttribute("data-bs-theme");
+```
+
+Both should return the same value.
+
+### Test 6 — Refresh page
+
+* Select Dark Mode.
+
+* Refresh the page.
+
+* Verify that the dark background appears immediately.
+
+* Verify that the sun icon appears.
+
+Repeat with Light Mode.
+
+### Test 7 — Browser restart
+
+* Select Dark Mode.
+
+* Close the browser completely.
+
+* Reopen the same browser.
+
+* Navigate to the same application URL.
+
+Expected result: Dark Mode should be restored, provided the browser has retained the site's Local Storage.
+
+Remember that `localhost` and your IIS deployment URL are different origins, so their saved preferences are separate.
+
+### Test 8 — Offline Bootstrap Icons
+
+This test verifies that you are not accidentally depending on a CDN.
+
+* Run the application.
+
+* Open Developer Tools → Network.
+
+* Enable Disable cache.
+
+* Disconnect your computer from the internet.
+
+* Refresh the application.
+
+Expected result:
+
+* The moon or sun icon still appears.
+
+* Theme switching still works.
+
+* The icon font is loaded from your local application.
+
+* There are no failed requests for an external icon CDN.
+
+You can specifically inspect:
+
+```text
+/lib/bootstrap-icons/font/bootstrap-icons.min.css
+/lib/bootstrap-icons/font/fonts/bootstrap-icons.woff2
+```
+
+Both should be served from your application.
+
+### 10\. Common errors and solutions
+
+| Problem                          | Cause                                   | Solution                                                |
+| -------------------------------- | --------------------------------------- | ------------------------------------------------------- |
+| Moon and sun icons are missing   | Bootstrap Icons CSS not loaded          | Verify the local CSS reference and Network tab          |
+| Icon displays as an empty square | Font files are missing                  | Restore both .woff and .woff2 files                     |
+| Icons work only with internet    | A CDN reference remains somewhere       | Search _Layout.cshtml for external Bootstrap Icons URLs |
+| Theme flashes on refresh         | Early script is below CSS references    | Move the initialization script before all stylesheets   |
+| Button still displays text       | Old button markup remains               | Remove the old <span> or text content                   |
+| Button does not toggle           | JavaScript cannot find the button       | Verify themeToggle and themeIcon IDs                    |
+| Icon does not change             | Incorrect Bootstrap Icon class          | Check bi-moon-fill and bi-sun-fill                      |
+| Theme does not persist           | Local Storage key mismatch              | Use theme consistently                                  |
+| Button loses keyboard focus      | blur() is called unconditionally        | Keep the event.detail > 0 condition                     |
+| Keyboard outline is missing      | CSS overrides focus styles              | Inspect :focus-visible and other Bootstrap overrides    |
+| LibMan cannot restore            | Provider or package configuration issue | Check the provider and LibMan Output window             |
+
+### Additional debugging commands
+
+Check whether the icon element exists:
+
+```javascript
+document.getElementById("themeIcon");
+```
+
+Check its current classes:
+
+```javascript
+document.getElementById("themeIcon").className;
+```
+
+Check the button accessibility label:
+
+```javascript
+document.getElementById("themeToggle")
+    .getAttribute("aria-label");
+```
+
+Check whether Bootstrap Icons CSS loaded:
+
+```javascript
+[...document.styleSheets].map(x => x.href)
+    .filter(x => x && x.includes("bootstrap-icons"));
+```
+
+Check whether the font is available:
+
+```javascript
+document.fonts.check('16px bootstrap-icons');
+```
+
+A successful result should be `true` after the font has loaded.
+
+### 11\. Final implementation checklist
+
+Use this checklist before considering the update complete.
+
+Implementation progress
+
+0/16 completed
+
+Bootstrap Icons installed locally through LibMan
+
+bootstrap-icons.min.css exists in wwwroot
+
+Both WOFF and WOFF2 font files exist
+
+Local Bootstrap Icons CSS referenced in _Layout.cshtml
+
+Early theme initialization placed before CSS
+
+Old visible Dark Mode / Light Mode text removed
+
+Moon icon displays in Light Mode
+
+Sun icon displays in Dark Mode
+
+aria-label and title update correctly
+
+aria-hidden=true applied to the icon
+
+Mouse and touch clicks remove pointer focus
+
+Keyboard activation preserves focus
+
+Keyboard focus indicator remains visible
+
+Local Storage uses the existing theme key
+
+Theme persists after refresh and browser restart
+
+Icons work without an internet connection
+
+### 12\. Technical references
+
+These are useful references for maintaining your implementation:
+
+* [Official Bootstrap Icons installation and usage](https://icons.getbootstrap.com/usage/?utm_source=chatgpt.com) — icon font installation and usage.
+
+* [Bootstrap Icons 1.13.1 on cdnjs](https://cdnjs.com/libraries/bootstrap-icons?utm_source=chatgpt.com) — pinned library version and locally downloadable files.
+
+* [Microsoft Learn – Client-side libraries with LibMan](https://learn.microsoft.com/en-us/aspnet/core/client-side/libman/?utm_source=chatgpt.com) — LibMan configuration and restoration.
+
+* [MDN – Element.blur()](https://developer.mozilla.org/en-US/docs/Web/API/Element/blur?utm_source=chatgpt.com) — focus management.
+
+* [MDN – :focus-visible](https://developer.mozilla.org/en-US/docs/Web/CSS/:focus-visible?utm_source=chatgpt.com) — keyboard focus styling.
+
+* [MDN – Window.localStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage?utm_source=chatgpt.com) — browser storage.
+
+My recommendation: Keep this implementation as your Phase 1 theme-toggle foundation. It does not require any database or server-side theme management, and it is suitable for your existing ASP.NET Core MVC application and future IIS deployment.
+
+One important distinction: the icons and application theme work offline once the files are installed, but your application itself must still be available through IIS or another local web server.
+
+The next useful improvement would be integrating this icon-only toggle into your existing responsive sidebar and navbar while ensuring that all sidebar menus, dropdowns, tables, modals, and forms also follow the selected theme.
+
+
+
+******
+
+
+
 Please update my existing ASP.NET Core MVC .NET 8 Light Mode and Dark Mode Theme Toggle implementation.
 
 The theme toggle already works using CSS, JavaScript, Bootstrap 5, and Local Storage. Do not recreate the project. Modify only the required code in:
