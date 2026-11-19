@@ -1,0 +1,333 @@
+Act as a senior ASP.NET Core MVC solution architect and full-stack developer.
+Create a complete, beginner-friendly development plan for an Employee Skill Matrix Management System using the following technologies:
+- ASP.NET Core MVC
+- .NET 8 LTS
+- C#
+- Entity Framework Core
+- SQL Server
+- ASP.NET Core Identity
+- Bootstrap 5
+- Bootstrap Icons
+- JavaScript
+- Chart.js for dashboards
+- Visual Studio 2022
+- IIS for deployment
+System Purpose:
+The system will allow a company to maintain employee skills, required skills per position, proficiency levels, training records, certifications, assessments, and skill gaps. It should help supervisors and HR identify which employees are qualified for specific tasks and which employees require training.
+Please create a practical, step-by-step implementation plan covering the following sections:
+1. Project Overview
+- Explain the objective of the Skill Matrix System.
+- Identify the target users.
+- Describe the main business problems it will solve.
+- Define the expected project scope.
+- Separate the Minimum Viable Product or MVP features from future enhancements.
+2. User Roles and Permissions
+Create a role-based access plan for:
+- Administrator
+- HR
+- Supervisor
+- Employee
+- Read-Only Viewer
+Explain what each role can view, add, edit, approve, assess, export, and delete.
+3. Main System Modules
+Include detailed requirements for:
+A. Employee Management
+- Employee number
+- Full name
+- Department
+- Section
+- Position
+- Supervisor
+- Employment status
+- Date hired
+- Profile photo
+B. Skill Management
+- Skill code
+- Skill name
+- Skill category
+- Description
+- Department
+- Active or inactive status
+C. Proficiency Level Management
+Use the following sample rating scale:
+- Level 0: No Knowledge
+- Level 1: Basic Awareness
+- Level 2: Can Perform with Supervision
+- Level 3: Can Perform Independently
+- Level 4: Can Train Others
+- Level 5: Subject Matter Expert
+Make the levels configurable by the Administrator.
+D. Position Skill Requirements
+- Assign required skills to each position.
+- Define the minimum required proficiency level.
+- Mark skills as mandatory or optional.
+- Allow different requirements by department or position.
+E. Employee Skill Assessment
+- Select an employee and skill.
+- Record current proficiency level.
+- Record assessment date.
+- Record assessed by.
+- Add remarks and supporting evidence.
+- Include employee self-assessment.
+- Include supervisor assessment.
+- Require approval before updating the official skill level.
+- Keep the complete assessment history.
+F. Skill Gap Analysis
+Calculate the skill gap using:
+Skill Gap = Required Level - Current Level
+Display:
+- Met Requirement when the gap is 0 or below
+- Training Required when the gap is above 0
+- Not Assessed when no approved assessment exists
+G. Training and Certification
+- Training title
+- Training provider
+- Start and completion dates
+- Related skill
+- Certification name
+- Certificate number
+- Issue date
+- Expiration date
+- Attachment
+- Valid, Expiring Soon, or Expired status
+Use 30, 60, and 90-day certification expiration reminders.
+H. Dashboard and Reports
+Include:
+- Total employees
+- Total skills
+- Assessed employees
+- Employees with skill gaps
+- Expiring certifications
+- Skill coverage by department
+- Employees qualified per skill
+- Training requirements
+- Assessment completion rate
+- Department-level skill matrix
+Allow filtering by:
+- Department
+- Section
+- Position
+- Employee
+- Skill category
+- Skill
+- Proficiency level
+- Assessment status
+Include export to Excel and PDF.
+I. Audit Trail
+Record:
+- User
+- Action
+- Module
+- Record ID
+- Old value
+- New value
+- Date and time
+- IP address when appropriate
+4. Database Design
+Recommend normalized SQL Server tables, including:
+- ApplicationUsers
+- Employees
+- Departments
+- Sections
+- Positions
+- Skills
+- SkillCategories
+- ProficiencyLevels
+- PositionSkillRequirements
+- EmployeeSkillAssessments
+- EmployeeSkills
+- Trainings
+- EmployeeTrainings
+- Certifications
+- Attachments
+- AuditLogs
+- Notifications
+For every table, provide:
+- Column name
+- SQL Server data type
+- Primary key
+- Foreign keys
+- Required or optional status
+- Recommended indexes
+- Relationships with other tables
+Also provide an Entity Relationship Diagram description.
+5. Business Rules
+Define clear rules for:
+- Duplicate employee numbers
+- Duplicate skill codes
+- Assessment approval
+- Current approved skill level
+- Skill gap calculation
+- Expired certifications
+- Inactive employees
+- Inactive skills
+- Deleting records with related transactions
+- Maintaining assessment history
+- Preventing unauthorized changes
+Recommend using soft delete for important master data and historical records.
+6. ASP.NET Core MVC Architecture
+Recommend a clean project structure using:
+- Controllers
+- Models
+- ViewModels
+- Views
+- Services
+- Interfaces
+- Data
+- Repositories, only if appropriate
+- Helpers
+- Middleware
+- Authorization Policies
+Explain the responsibility of each folder.
+Use:
+- Dependency Injection
+- Async and await
+- Data Annotations or Fluent API
+- ViewModels instead of directly exposing database entities
+- Server-side validation
+- Client-side validation
+- Global exception handling
+- Logging using Microsoft.Extensions.Logging or Serilog
+7. Suggested Controllers
+Provide the purpose and important actions for:
+- AccountController
+- DashboardController
+- EmployeesController
+- SkillsController
+- SkillCategoriesController
+- ProficiencyLevelsController
+- PositionsController
+- PositionSkillRequirementsController
+- AssessmentsController
+- ApprovalsController
+- TrainingsController
+- CertificationsController
+- ReportsController
+- AuditLogsController
+- NotificationsController
+8. UI and UX Plan
+Create a professional corporate interface using Bootstrap 5.
+Include:
+- Responsive sidebar navigation
+- Top navigation bar
+- Light and dark theme
+- Saved sidebar and theme state using Local Storage
+- Dashboard cards
+- Searchable and paginated tables
+- Filter panels
+- Modal confirmation for delete
+- Separate pages for complex Add and Edit forms
+- Toast notifications
+- Loading indicators
+- Validation messages
+- Accessible labels and keyboard navigation
+- Mobile-friendly layout
+For every page, identify:
+- Page title
+- Main controls
+- Table columns
+- Buttons
+- Filters
+- Validation requirements
+- Recommended layout
+9. Security Requirements
+Include:
+- ASP.NET Core Identity
+- Role-based authorization
+- Policy-based authorization
+- Secure password requirements
+- Account lockout
+- Anti-forgery tokens
+- Input validation
+- Protection from SQL injection
+- File upload validation
+- Allowed file types and size limits
+- Secure connection strings
+- HTTPS
+- Logging of sensitive actions
+- Backup and recovery recommendations
+10. Development Phases
+Divide the project into practical phases:
+Phase 1: Requirements and Database Design
+Phase 2: Project Setup and Authentication
+Phase 3: Master Data Management
+Phase 4: Employee and Skill Management
+Phase 5: Skill Requirements and Assessments
+Phase 6: Approval Workflow
+Phase 7: Skill Gap Analysis
+Phase 8: Training and Certifications
+Phase 9: Dashboard and Reports
+Phase 10: Testing, Deployment, and Documentation
+For each phase, provide:
+- Objectives
+- Development tasks
+- Deliverables
+- Dependencies
+- Risks
+- Estimated duration
+- Completion checklist
+11. Testing Plan
+Include:
+- Unit testing
+- Integration testing
+- User acceptance testing
+- Authorization testing
+- Validation testing
+- File upload testing
+- Performance testing
+- Security testing
+Provide realistic test scenarios, expected results, and acceptance criteria.
+12. Deployment Plan
+Provide a deployment procedure for:
+- SQL Server database
+- Entity Framework Core migrations
+- ASP.NET Core MVC application
+- IIS
+- HTTPS certificate
+- Production connection string
+- Application logs
+- Database backup
+- Rollback procedure
+13. Initial Code Examples
+After the plan, provide starter examples for:
+- Entity models
+- DbContext
+- Entity relationships
+- ViewModels
+- Service interfaces
+- Controller actions
+- Razor views
+- Role seeding
+- Policy-based authorization
+- Skill gap calculation
+- Dashboard query
+- Excel and PDF export approach
+14. Recommended Navigation Menu
+Provide a professional sidebar menu structure for:
+- Dashboard
+- Employees
+- Skills
+- Skill Requirements
+- Assessments
+- Approvals
+- Training
+- Certifications
+- Reports
+- Administration
+- Audit Logs
+15. Final Output Format
+Present the answer using:
+- Clear headings
+- Numbered development phases
+- Tables for the database design and permissions
+- Checklists for each phase
+- Sample workflow diagrams described in text
+- Beginner-friendly explanations
+- Copy-paste-ready code examples
+Do not provide only general recommendations. Produce a concrete implementation plan that can be followed from initial project setup through IIS deployment.
+When presenting code, explain:
+- Where the file should be created
+- The exact file name
+- The purpose of the code
+- Required NuGet packages
+- How the code connects to the previous and next steps
